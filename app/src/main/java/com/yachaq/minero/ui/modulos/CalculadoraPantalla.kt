@@ -186,7 +186,7 @@ fun CalculadoraPantalla() {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
 
-                    // ===== ENCABEZADO: TOTAL A PAGAR =====
+                    // ===== PAGO TOTAL =====
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -210,7 +210,7 @@ fun CalculadoraPantalla() {
 
                     Spacer(Modifier.height(4.dp))
 
-                    // ===== ENCABEZADO: TONELADAS DE CONCENTRADO =====
+                    // ===== TONELADAS DE CONCENTRADO =====
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally

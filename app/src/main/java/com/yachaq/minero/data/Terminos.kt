@@ -1,33 +1,31 @@
 package com.yachaq.minero.data
 
 class Terminos(
-    // Concentrado
-    val leyConcentradoCu: Double = 25.23,   // Ley de Cu en el concentrado
+    val factorConcentrado: Double = 3.3,
+    val humedad: Double = 10.1,
+    val merma: Double = 1.0,
 
-    // Cobre
-    val pagableCu: Double = 100.0,          // % PAGABLES CU
-    val deduccionCu: Double = 1.35,         // DEDUCCION
-    val gastosRefCu: Double = 0.19,         // GASTOS DE REF CU $/LB
-    val proteccionCu: Double = 0.1,         // PROTECCION
+    val leyConcentradoCu: Double = 25.23,
+    val leyConcentradoAg: Double = 0.0,
+    val leyConcentradoAu: Double = 0.0,
 
-    // Plata
-    val pagableAg: Double = 90.0,           // % PAGABLE DE PLATA
-    val deduccionAg: Double = 2.0,          // DEDUCCION Ag GR
-    val gastosRefAg: Double = 1.2,          // GASTOS DE REF AG $/OZ
+    val pagableCu: Double = 100.0,
+    val deduccionCu: Double = 1.35,
+    val gastosRefCu: Double = 0.19,
+    val proteccionCu: Double = 0.1,
 
-    // Oro
-    val pagableAu: Double = 90.0,           // %PAGABLE DE AU
-    val deduccionAu: Double = 60.0,         // DEDUCCION AU GR
-    val gastosRefAu: Double = 12.0,         // GASTOS DE REF AU $/OZ
+    val pagableAg: Double = 90.0,
+    val deduccionAg: Double = 2.0,
+    val gastosRefAg: Double = 1.2,
 
-    // Maquila
-    val maquila: Double = 175.0,            // MAQUILA $/TMNS
+    val pagableAu: Double = 90.0,
+    val deduccionAu: Double = 60.0,
+    val gastosRefAu: Double = 12.0,
 
-    // Servicios
-    val analisis: Double = 100.0,           // ANÁLISIS ($)
-    val trasladoInterno: Double = 55.0,     // TRASLADO INTERNO ($)
+    val maquila: Double = 175.0,
+    val analisis: Double = 100.0,
+    val trasladoInterno: Double = 55.0,
 
-    // Impuestos
-    val igvPorcentaje: Double = 0.18,       // IGV 18%
-    val detraccionPorcentaje: Double = 0.10 // DETRACCIÓN 10%
+    val igvPorcentaje: Double = 0.18,
+    val detraccionPorcentaje: Double = 0.10
 )

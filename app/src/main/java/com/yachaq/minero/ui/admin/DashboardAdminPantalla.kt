@@ -1,7 +1,6 @@
 package com.yachaq.minero.ui.admin
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.yachaq.minero.data.Usuario
@@ -9,6 +8,8 @@ import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
 import com.yachaq.minero.ui.modulos.UsuarioPantalla
+import com.yachaq.minero.ui.modulos.GestionPlantaPantalla
+import com.yachaq.minero.ui.modulos.ConfiguracionPantalla
 
 @Composable
 fun DashboardAdminPantalla(
@@ -33,6 +34,8 @@ fun DashboardAdminPantalla(
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
                 2 -> UsuarioPantalla(usuarioActual = usuario)
+                3 -> GestionPlantaPantalla()
+                4 -> ConfiguracionPantalla()
             }
         }
     }

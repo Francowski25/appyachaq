@@ -106,13 +106,29 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
-        // OPCIÓN EXCLUSIVA PARA ADMINISTRADORES (Gestión de Usuarios y Plantas)
+        // OPCIÓN EXCLUSIVA PARA ADMINISTRADORES
         if (usuario.rol == "admin") {
             NavigationDrawerItem(
                 label = { Text("Gestión de Usuarios") },
                 icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = null) },
                 selected = tabSeleccionada == 2,
                 onClick = { onSeleccionarTab(2) },
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            NavigationDrawerItem(
+                label = { Text("Gestión de Plantas") },
+                icon = { Icon(Icons.Default.Factory, contentDescription = null) }, // Icono adecuado
+                selected = tabSeleccionada == 3,
+                onClick = { onSeleccionarTab(3) },
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            NavigationDrawerItem(
+                label = { Text("Gestión de Calculadora") },
+                icon = { Icon(Icons.Default.Calculate, contentDescription = null) }, // Icono adecuado
+                selected = tabSeleccionada == 4,
+                onClick = { onSeleccionarTab(4) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
