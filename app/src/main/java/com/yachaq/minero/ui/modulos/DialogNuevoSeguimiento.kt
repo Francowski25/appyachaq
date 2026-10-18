@@ -23,7 +23,6 @@ import com.yachaq.minero.data.*
 import com.yachaq.minero.ui.theme.*
 import com.yachaq.minero.logica.FormateadorFecha
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)

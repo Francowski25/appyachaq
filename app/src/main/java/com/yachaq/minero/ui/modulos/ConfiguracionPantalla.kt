@@ -1,10 +1,16 @@
 package com.yachaq.minero.ui.modulos
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,264 +21,437 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.Terminos
-import com.yachaq.minero.ui.theme.GrisCampos
+import com.yachaq.minero.ui.theme.*
 
 @Composable
 fun ConfiguracionPantalla(
     terminosActuales: Terminos = Terminos(),
-    onGuardar: (Terminos) -> Unit = {},
-    onCancelar: () -> Unit = {}
+    onGuardarTerminos: (Terminos) -> Unit = {}
 ) {
-    // ===== Estados de cada campo =====
-    var factorConcentrado by remember { mutableStateOf(terminosActuales.factorConcentrado.toString()) }
-    var humedad by remember { mutableStateOf(terminosActuales.humedad.toString()) }
-    var merma by remember { mutableStateOf(terminosActuales.merma.toString()) }
-
-    var leyConcentradoCu by remember { mutableStateOf(terminosActuales.leyConcentradoCu.toString()) }
-    var leyConcentradoAg by remember { mutableStateOf(terminosActuales.leyConcentradoAg.toString()) }
-    var leyConcentradoAu by remember { mutableStateOf(terminosActuales.leyConcentradoAu.toString()) }
-
-    var pagableCu by remember { mutableStateOf(terminosActuales.pagableCu.toString()) }
-    var deduccionCu by remember { mutableStateOf(terminosActuales.deduccionCu.toString()) }
-    var gastosRefCu by remember { mutableStateOf(terminosActuales.gastosRefCu.toString()) }
-    var proteccionCu by remember { mutableStateOf(terminosActuales.proteccionCu.toString()) }
-
-    var pagableAg by remember { mutableStateOf(terminosActuales.pagableAg.toString()) }
-    var deduccionAg by remember { mutableStateOf(terminosActuales.deduccionAg.toString()) }
-    var gastosRefAg by remember { mutableStateOf(terminosActuales.gastosRefAg.toString()) }
-
-    var pagableAu by remember { mutableStateOf(terminosActuales.pagableAu.toString()) }
-    var deduccionAu by remember { mutableStateOf(terminosActuales.deduccionAu.toString()) }
-    var gastosRefAu by remember { mutableStateOf(terminosActuales.gastosRefAu.toString()) }
-
-    var maquila by remember { mutableStateOf(terminosActuales.maquila.toString()) }
-
-    var analisis by remember { mutableStateOf(terminosActuales.analisis.toString()) }
-    var trasladoInterno by remember { mutableStateOf(terminosActuales.trasladoInterno.toString()) }
-
-    var igvPorcentaje by remember { mutableStateOf(terminosActuales.igvPorcentaje.toString()) }
-    var detraccionPorcentaje by remember { mutableStateOf(terminosActuales.detraccionPorcentaje.toString()) }
-
-    var error by remember { mutableStateOf<String?>(null) }
+    // Estado global de términos (actualizable)
+    var terminos by remember { mutableStateOf(terminosActuales) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ENCABEZADO
         Text(
-            text = "Configuración de Términos",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            text = "CONFIGURACIÓN DE TÉRMINOS",
+            color = AmarilloMineroBrillante,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.2.sp
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Solo el administrador puede modificar los parámetros de liquidación.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Parámetros técnicos de comercialización y liquidación minera.",
+            color = TextoGrisSecundario,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Normal
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
         // ===== 1. VALORES DEL CONCENTRADO =====
-        SeccionTitulo("1. Valores del Concentrado")
-        Campo(factorConcentrado, "Factor de concentrado") { factorConcentrado = it; error = null }
-        Campo(humedad, "% H2O") { humedad = it; error = null }
-        Campo(merma, "Merma") { merma = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "1. Valores del Concentrado",
+            campos = listOf(
+                "Factor de concentrado" to terminos.factorConcentrado.toString(),
+                "% H2O (Humedad)" to terminos.humedad.toString(),
+                "Merma de proceso (%)" to terminos.merma.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val fc = nuevosValores["Factor de concentrado"]?.toDoubleOrNull()
+                val hu = nuevosValores["% H2O (Humedad)"]?.toDoubleOrNull()
+                val me = nuevosValores["Merma de proceso (%)"]?.toDoubleOrNull()
+                if (fc != null && hu != null && me != null) {
+                    terminos = terminos.copy(factorConcentrado = fc, humedad = hu, merma = me)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 2. LEYES DEL CONCENTRADO =====
-        SeccionTitulo("2. Leyes del Concentrado")
-        Campo(leyConcentradoCu, "Ley Cu concentrado (%)") { leyConcentradoCu = it; error = null }
-        Campo(leyConcentradoAg, "Ley Ag concentrado (oz/tc)") { leyConcentradoAg = it; error = null }
-        Campo(leyConcentradoAu, "Ley Au concentrado (oz/tc)") { leyConcentradoAu = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "2. Leyes del Concentrado",
+            campos = listOf(
+                "Ley Cu concentrado (%)" to terminos.leyConcentradoCu.toString(),
+                "Ley Ag concentrado (oz/tc)" to terminos.leyConcentradoAg.toString(),
+                "Ley Au concentrado (oz/tc)" to terminos.leyConcentradoAu.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val lc = nuevosValores["Ley Cu concentrado (%)"]?.toDoubleOrNull()
+                val la = nuevosValores["Ley Ag concentrado (oz/tc)"]?.toDoubleOrNull()
+                val lo = nuevosValores["Ley Au concentrado (oz/tc)"]?.toDoubleOrNull()
+                if (lc != null && la != null && lo != null) {
+                    terminos = terminos.copy(leyConcentradoCu = lc, leyConcentradoAg = la, leyConcentradoAu = lo)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 3. TÉRMINOS: COBRE =====
-        SeccionTitulo("3. Términos: Cobre")
-        Campo(pagableCu, "% Pagable Cu") { pagableCu = it; error = null }
-        Campo(deduccionCu, "Deducción Cu") { deduccionCu = it; error = null }
-        Campo(gastosRefCu, "Gastos ref Cu ($/lb)") { gastosRefCu = it; error = null }
-        Campo(proteccionCu, "Protección Cu") { proteccionCu = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "3. Términos: Cobre (Cu)",
+            campos = listOf(
+                "% Pagable Cu" to terminos.pagableCu.toString(),
+                "Deducción Cu" to terminos.deduccionCu.toString(),
+                "Gastos ref Cu ($/lb)" to terminos.gastosRefCu.toString(),
+                "Protección Cu" to terminos.proteccionCu.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val pCu = nuevosValores["% Pagable Cu"]?.toDoubleOrNull()
+                val dCu = nuevosValores["Deducción Cu"]?.toDoubleOrNull()
+                val gCu = nuevosValores["Gastos ref Cu ($/lb)"]?.toDoubleOrNull()
+                val proCu = nuevosValores["Protección Cu"]?.toDoubleOrNull()
+                if (pCu != null && dCu != null && gCu != null && proCu != null) {
+                    terminos = terminos.copy(pagableCu = pCu, deduccionCu = dCu, gastosRefCu = gCu, proteccionCu = proCu)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 4. TÉRMINOS: PLATA =====
-        SeccionTitulo("4. Términos: Plata")
-        Campo(pagableAg, "% Pagable Ag") { pagableAg = it; error = null }
-        Campo(deduccionAg, "Deducción Ag (gr)") { deduccionAg = it; error = null }
-        Campo(gastosRefAg, "Gastos ref Ag ($/oz)") { gastosRefAg = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "4. Términos: Plata (Ag)",
+            campos = listOf(
+                "% Pagable Ag" to terminos.pagableAg.toString(),
+                "Deducción Ag (gr)" to terminos.deduccionAg.toString(),
+                "Gastos ref Ag ($/oz)" to terminos.gastosRefAg.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val pAg = nuevosValores["% Pagable Ag"]?.toDoubleOrNull()
+                val dAg = nuevosValores["Deducción Ag (gr)"]?.toDoubleOrNull()
+                val gAg = nuevosValores["Gastos ref Ag ($/oz)"]?.toDoubleOrNull()
+                if (pAg != null && dAg != null && gAg != null) {
+                    terminos = terminos.copy(pagableAg = pAg, deduccionAg = dAg, gastosRefAg = gAg)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 5. TÉRMINOS: ORO =====
-        SeccionTitulo("5. Términos: Oro")
-        Campo(pagableAu, "% Pagable Au") { pagableAu = it; error = null }
-        Campo(deduccionAu, "Deducción Au (gr)") { deduccionAu = it; error = null }
-        Campo(gastosRefAu, "Gastos ref Au ($/oz)") { gastosRefAu = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "5. Términos: Oro (Au)",
+            campos = listOf(
+                "% Pagable Au" to terminos.pagableAu.toString(),
+                "Deducción Au (gr)" to terminos.deduccionAu.toString(),
+                "Gastos ref Au ($/oz)" to terminos.gastosRefAu.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val pAu = nuevosValores["% Pagable Au"]?.toDoubleOrNull()
+                val dAu = nuevosValores["Deducción Au (gr)"]?.toDoubleOrNull()
+                val gAu = nuevosValores["Gastos ref Au ($/oz)"]?.toDoubleOrNull()
+                if (pAu != null && dAu != null && gAu != null) {
+                    terminos = terminos.copy(pagableAu = pAu, deduccionAu = dAu, gastosRefAu = gAu)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 6. MAQUILA =====
-        SeccionTitulo("6. Maquila")
-        Campo(maquila, "Maquila ($/TMNS)") { maquila = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "6. Maquila",
+            campos = listOf(
+                "Maquila ($/TMNS)" to terminos.maquila.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val maq = nuevosValores["Maquila ($/TMNS)"]?.toDoubleOrNull()
+                if (maq != null) {
+                    terminos = terminos.copy(maquila = maq)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 7. SERVICIOS =====
-        SeccionTitulo("7. Servicios")
-        Campo(analisis, "Análisis ($)") { analisis = it; error = null }
-        Campo(trasladoInterno, "Traslado interno ($)") { trasladoInterno = it; error = null }
+        TarjetaConfiguracionSeccion(
+            titulo = "7. Servicios Operativos",
+            campos = listOf(
+                "Análisis ($)" to terminos.analisis.toString(),
+                "Traslado interno ($)" to terminos.trasladoInterno.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val ana = nuevosValores["Análisis ($)"]?.toDoubleOrNull()
+                val tra = nuevosValores["Traslado interno ($)"]?.toDoubleOrNull()
+                if (ana != null && tra != null) {
+                    terminos = terminos.copy(analisis = ana, trasladoInterno = tra)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // ===== 8. IMPUESTOS =====
-        SeccionTitulo("8. Impuestos")
-        Campo(igvPorcentaje, "IGV (0.18 = 18%)") { igvPorcentaje = it; error = null }
-        Campo(detraccionPorcentaje, "Detracción (0.10 = 10%)") { detraccionPorcentaje = it; error = null }
-
-        error?.let {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ===== BOTONES DE ACCIÓN =====
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = onCancelar,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-            ) {
-                Text("CANCELAR", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        TarjetaConfiguracionSeccion(
+            titulo = "8. Impuestos y Detracciones",
+            campos = listOf(
+                "IGV Porcentaje (0.18 = 18%)" to terminos.igvPorcentaje.toString(),
+                "Detracción Porcentaje (0.10 = 10%)" to terminos.detraccionPorcentaje.toString()
+            ),
+            onGuardar = { nuevosValores ->
+                val igv = nuevosValores["IGV Porcentaje (0.18 = 18%)"]?.toDoubleOrNull()
+                val det = nuevosValores["Detracción Porcentaje (0.10 = 10%)"]?.toDoubleOrNull()
+                if (igv != null && det != null) {
+                    terminos = terminos.copy(igvPorcentaje = igv, detraccionPorcentaje = det)
+                    onGuardarTerminos(terminos)
+                    true
+                } else false
             }
-
-            Button(
-                onClick = {
-                    val fc = factorConcentrado.toDoubleOrNull()
-                    val hu = humedad.toDoubleOrNull()
-                    val me = merma.toDoubleOrNull()
-                    val lc = leyConcentradoCu.toDoubleOrNull()
-                    val la = leyConcentradoAg.toDoubleOrNull()
-                    val lo = leyConcentradoAu.toDoubleOrNull()
-                    val pCu = pagableCu.toDoubleOrNull()
-                    val dCu = deduccionCu.toDoubleOrNull()
-                    val gCu = gastosRefCu.toDoubleOrNull()
-                    val proCu = proteccionCu.toDoubleOrNull()
-                    val pAg = pagableAg.toDoubleOrNull()
-                    val dAg = deduccionAg.toDoubleOrNull()
-                    val gAg = gastosRefAg.toDoubleOrNull()
-                    val pAu = pagableAu.toDoubleOrNull()
-                    val dAu = deduccionAu.toDoubleOrNull()
-                    val gAu = gastosRefAu.toDoubleOrNull()
-                    val maq = maquila.toDoubleOrNull()
-                    val ana = analisis.toDoubleOrNull()
-                    val tra = trasladoInterno.toDoubleOrNull()
-                    val igv = igvPorcentaje.toDoubleOrNull()
-                    val det = detraccionPorcentaje.toDoubleOrNull()
-
-                    if (listOf(
-                            fc, hu, me, lc, la, lo, pCu, dCu, gCu, proCu,
-                            pAg, dAg, gAg, pAu, dAu, gAu, maq, ana, tra, igv, det
-                        ).any { it == null }
-                    ) {
-                        error = "Por favor complete todos los campos con números válidos."
-                    } else {
-                        val nuevos = Terminos(
-                            factorConcentrado = fc!!,
-                            humedad = hu!!,
-                            merma = me!!,
-                            leyConcentradoCu = lc!!,
-                            leyConcentradoAg = la!!,
-                            leyConcentradoAu = lo!!,
-                            pagableCu = pCu!!,
-                            deduccionCu = dCu!!,
-                            gastosRefCu = gCu!!,
-                            proteccionCu = proCu!!,
-                            pagableAg = pAg!!,
-                            deduccionAg = dAg!!,
-                            gastosRefAg = gAg!!,
-                            pagableAu = pAu!!,
-                            deduccionAu = dAu!!,
-                            gastosRefAu = gAu!!, // Mantenido tal cual tu objeto original
-                            maquila = maq!!,
-                            analisis = ana!!,
-                            trasladoInterno = tra!!,
-                            igvPorcentaje = igv!!,
-                            detraccionPorcentaje = det!!
-                        )
-                        error = null
-                        onGuardar(nuevos)
-                    }
-                },
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-            ) {
-                Text("GUARDAR", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-        }
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
-// ===== COMPONENTES AUXILIARES ESTILIZADOS =====
-
+// ========================================================
+// COMPONENTE TARJETA DE CONFIGURACIÓN CON MODO EDITAR/GUARDAR
+// ========================================================
 @Composable
-private fun SeccionTitulo(titulo: String) {
-    Text(
-        text = titulo,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.fillMaxWidth()
-    )
-    Spacer(modifier = Modifier.height(6.dp))
-}
-
-@Composable
-private fun Campo(
-    valor: String,
-    etiqueta: String,
-    onCambio: (String) -> Unit
+private fun TarjetaConfiguracionSeccion(
+    titulo: String,
+    campos: List<Pair<String, String>>, // Etiqueta a Valor actual
+    onGuardar: (Map<String, String>) -> Boolean // Retorna true si guardó con éxito
 ) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = { onCambio(it.replace(',', '.')) },
-        label = { Text(etiqueta) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos,
-            unfocusedContainerColor = GrisCampos,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.Transparent
-        ),
-        shape = RoundedCornerShape(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    )
+    var enModoEdicion by remember { mutableStateOf(false) }
+    var mostrarConfirmacion by remember { mutableStateOf(false) }
+    var errorMensaje by remember { mutableStateOf<String?>(null) }
+
+    // Estado reactivo local de los campos de la tarjeta
+    val estadoCampos = remember(campos) {
+        mutableStateMapOf<String, String>().apply {
+            campos.forEach { put(it.first, it.second) }
+        }
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, if (enModoEdicion) AmarilloMineroBrillante else ColorGrisBorde),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ENCABEZADO DE LA TARJETA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = titulo,
+                    color = AmarilloMineroBrillante,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+
+                if (!enModoEdicion) {
+                    // Botón Activar Edición
+                    IconButton(
+                        onClick = { enModoEdicion = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar sección",
+                            tint = AmarilloMineroBrillante
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+
+            // LISTA DE CAMPOS (EDITABLES O LECTURA)
+            campos.forEach { (etiqueta, _) ->
+                val valorActual = estadoCampos[etiqueta] ?: ""
+
+                if (enModoEdicion) {
+                    // Campo editable
+                    OutlinedTextField(
+                        value = valorActual,
+                        onValueChange = {
+                            estadoCampos[etiqueta] = it.replace(',', '.')
+                            errorMensaje = null
+                        },
+                        label = { Text(etiqueta) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = GrisCampos,
+                            unfocusedContainerColor = GrisCampos,
+                            focusedBorderColor = AmarilloMineroBrillante,
+                            unfocusedBorderColor = ColorGrisBorde,
+                            focusedLabelColor = AmarilloMineroBrillante,
+                            unfocusedLabelColor = TextoGrisSecundario,
+                            focusedTextColor = TextoBlancoSuave,
+                            unfocusedTextColor = TextoBlancoSuave
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    // Campo en solo lectura (vista limpia)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = etiqueta,
+                            color = TextoGrisSecundario,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = valorActual,
+                            color = TextoBlancoSuave,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            errorMensaje?.let {
+                Text(it, color = ErrorRojo, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+
+            // BOTONES EN MODO EDICIÓN
+            if (enModoEdicion) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Cancelar Edición
+                    OutlinedButton(
+                        onClick = {
+                            // Restaura los valores originales
+                            campos.forEach { estadoCampos[it.first] = it.second }
+                            errorMensaje = null
+                            enModoEdicion = false
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextoGrisSecundario),
+                        border = BorderStroke(1.dp, ColorGrisBorde),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                    ) {
+                        Text("Cancelar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+
+                    // Solicitar Guardar (Abre Diálogo)
+                    Button(
+                        onClick = {
+                            mostrarConfirmacion = true
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AmarilloMineroBrillante,
+                            contentColor = FondoNegroAbsoluto
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text("Guardar", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // DIÁLOGO DE CONFIRMACIÓN DE GUARDADO POR SECCIÓN
+    if (mostrarConfirmacion) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacion = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = FondoNegroSecundario,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = AmarilloMineroBrillante,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Confirmar Modificación",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    color = AmarilloMineroBrillante
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "¿Desea aplicar y guardar las modificaciones en la sección '$titulo'?",
+                        fontSize = 13.sp,
+                        color = TextoGrisSecundario
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val exito = onGuardar(estadoCampos)
+                        if (exito) {
+                            enModoEdicion = false
+                            errorMensaje = null
+                        } else {
+                            errorMensaje = "Por favor ingrese valores numéricos válidos."
+                        }
+                        mostrarConfirmacion = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AmarilloMineroBrillante,
+                        contentColor = FondoNegroAbsoluto
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Sí, Guardar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmacion = false }) {
+                    Text("Cancelar", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 }

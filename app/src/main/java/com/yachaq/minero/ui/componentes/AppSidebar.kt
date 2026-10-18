@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Factory
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.*
@@ -89,7 +90,8 @@ fun AppSidebar(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // OPCIONES COMUNES (Calculadora y Plantas Mineras)
+        // ===== OPCIONES COMUNES =====
+        // Tab 0: Calculadora Minera
         NavigationDrawerItem(
             label = { Text("Calculadora Minera") },
             icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
@@ -98,6 +100,7 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
+        // Tab 1: Plantas Mineras
         NavigationDrawerItem(
             label = { Text("Plantas Mineras") },
             icon = { Icon(Icons.Default.Factory, contentDescription = null) },
@@ -106,29 +109,46 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
-        // OPCIÓN EXCLUSIVA PARA ADMINISTRADORES
+        // Tab 2: Seguimiento de Carga (NUEVO MÓDULO)
+        NavigationDrawerItem(
+            label = { Text("Seguimiento de Carga") },
+            icon = { Icon(Icons.Default.LocalShipping, contentDescription = null) },
+            selected = tabSeleccionada == 2,
+            onClick = { onSeleccionarTab(2) },
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+
+        // ===== OPCIONES EXCLUSIVAS PARA ADMINISTRADORES =====
         if (usuario.rol == "admin") {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            // Tab 3: Gestión de Usuarios
             NavigationDrawerItem(
                 label = { Text("Gestión de Usuarios") },
                 icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = null) },
-                selected = tabSeleccionada == 2,
-                onClick = { onSeleccionarTab(2) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Gestión de Plantas") },
-                icon = { Icon(Icons.Default.Factory, contentDescription = null) }, // Icono adecuado
                 selected = tabSeleccionada == 3,
                 onClick = { onSeleccionarTab(3) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
 
+            // Tab 4: Gestión de Plantas
             NavigationDrawerItem(
-                label = { Text("Gestión de Calculadora") },
-                icon = { Icon(Icons.Default.Calculate, contentDescription = null) }, // Icono adecuado
+                label = { Text("Gestión de Plantas") },
+                icon = { Icon(Icons.Default.Factory, contentDescription = null) },
                 selected = tabSeleccionada == 4,
                 onClick = { onSeleccionarTab(4) },
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            // Tab 5: Gestión de Calculadora (Términos)
+            NavigationDrawerItem(
+                label = { Text("Gestión de Calculadora") },
+                icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
+                selected = tabSeleccionada == 5,
+                onClick = { onSeleccionarTab(5) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
         }

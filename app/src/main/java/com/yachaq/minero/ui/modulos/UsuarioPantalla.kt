@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -21,18 +23,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.Usuario
+import com.yachaq.minero.data.UsuarioEstado
 import com.yachaq.minero.data.Usuarios
-import com.yachaq.minero.logica.ResultadoValidacion // <--- Importado desde logica
-import com.yachaq.minero.logica.ValidadorUsuario     // <--- Importado desde logica
+import com.yachaq.minero.logica.ResultadoValidacion
+import com.yachaq.minero.logica.ValidadorUsuario
 import com.yachaq.minero.ui.theme.GrisCampos
-
-data class UsuarioEstado(
-    val usuario: Usuario,
-    var esActivo: Boolean = true
-)
 
 @Composable
 fun UsuarioPantalla(usuarioActual: Usuario? = null) {
@@ -43,8 +42,21 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
     }
 
     val usuariosEstado = remember { mutableStateListOf(*listaFiltrada.toTypedArray()) }
+    var textoBusqueda by remember { mutableStateOf("") }
     var mostrarDialogoAgregar by remember { mutableStateOf(false) }
     var usuarioAEliminar by remember { mutableStateOf<UsuarioEstado?>(null) }
+
+    // Filtrar la lista en tiempo real según el texto de búsqueda (por nombre o correo)
+    val usuariosVisibles = remember(textoBusqueda, usuariosEstado.toList()) {
+        if (textoBusqueda.isBlank()) {
+            usuariosEstado
+        } else {
+            usuariosEstado.filter {
+                it.usuario.nombre.contains(textoBusqueda, ignoreCase = true) ||
+                        it.usuario.correo.contains(textoBusqueda, ignoreCase = true)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -66,26 +78,90 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(
-                    items = usuariosEstado,
-                    key = { it.usuario.correo }
-                ) { item ->
-                    UsuarioCardMejorada(
-                        item = item,
-                        onToggleEstado = {
-                            val index = usuariosEstado.indexOf(item)
-                            if (index != -1) {
-                                usuariosEstado[index] = item.copy(esActivo = !item.esActivo)
-                            }
-                        },
-                        onEliminar = {
-                            usuarioAEliminar = item
-                        }
+            // ========================================================
+            // BUSCADOR
+            // ========================================================
+            OutlinedTextField(
+                value = textoBusqueda,
+                onValueChange = { textoBusqueda = it },
+                label = { Text("Buscar por nombre o correo...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ========================================================
+            // LISTA O MENSAJE DE ERROR SI NO SE ENCUENTRA
+            // ========================================================
+            if (usuariosVisibles.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SearchOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "No se encontraron usuarios",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "No hay resultados para \"$textoBusqueda\". Intente con otro término.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    items(
+                        items = usuariosVisibles,
+                        key = { it.usuario.correo }
+                    ) { item ->
+                        UsuarioCardMejorada(
+                            item = item,
+                            onToggleEstado = {
+                                val index = usuariosEstado.indexOf(item)
+                                if (index != -1) {
+                                    usuariosEstado[index] = item.copy(esActivo = !item.esActivo)
+                                }
+                            },
+                            onEliminar = {
+                                usuarioAEliminar = item
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -397,7 +473,6 @@ private fun DialogoNuevoUsuarioMejorado(
         confirmButton = {
             Button(
                 onClick = {
-                    // AQUÍ USAMOS EL VALIDADOR DE LA CARPETA LOGICA
                     when (val resultado = ValidadorUsuario.validarFormularioCompleto(nombre, correo, clave)) {
                         is ResultadoValidacion.Exito -> {
                             onGuardar(Usuario(nombre.trim(), correo.trim(), clave, rol))

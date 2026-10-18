@@ -7,6 +7,7 @@ import com.yachaq.minero.data.Usuario
 import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
+import com.yachaq.minero.ui.modulos.SeguimientoPantalla
 import com.yachaq.minero.ui.modulos.UsuarioPantalla
 import com.yachaq.minero.ui.modulos.GestionPlantaPantalla
 import com.yachaq.minero.ui.modulos.ConfiguracionPantalla
@@ -33,9 +34,10 @@ fun DashboardAdminPantalla(
             when (tabSeleccionada) {
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
-                2 -> UsuarioPantalla(usuarioActual = usuario)
-                3 -> GestionPlantaPantalla()
-                4 -> ConfiguracionPantalla()
+                2 -> SeguimientoPantalla()
+                3 -> UsuarioPantalla(usuarioActual = usuario)
+                4 -> GestionPlantaPantalla()
+                5 -> ConfiguracionPantalla()
             }
         }
     }

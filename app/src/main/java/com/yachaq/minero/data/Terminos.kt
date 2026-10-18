@@ -1,6 +1,6 @@
 package com.yachaq.minero.data
 
-class Terminos(
+data class Terminos(
     val factorConcentrado: Double = 3.3,
     val humedad: Double = 10.1,
     val merma: Double = 1.0,
