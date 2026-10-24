@@ -20,7 +20,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.PlantaProcesadora
-import com.yachaq.minero.data.Resultado
 import com.yachaq.minero.ui.theme.*
 import java.util.Locale
 

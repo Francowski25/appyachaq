@@ -7,7 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -22,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.yachaq.minero.data.PlantaProcesadora
 import com.yachaq.minero.data.PlantasProc
 import com.yachaq.minero.ui.theme.*
@@ -33,6 +37,10 @@ fun GestionPlantaPantalla() {
 
     var textoBusqueda by remember { mutableStateOf("") }
     var mostrarDialogoCrear by remember { mutableStateOf(false) }
+
+    // Estado para controlar qué planta tiene abierto su diálogo de términos actualmente
+    var plantaSeleccionadaTerminos by remember { mutableStateOf<PlantaProcesadora?>(null) }
+
     var plantaAEliminar by remember { mutableStateOf<PlantaProcesadora?>(null) }
 
     val plantasVisibles = remember(textoBusqueda, plantasList.toList()) {
@@ -53,20 +61,29 @@ fun GestionPlantaPantalla() {
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ENCABEZADO ESTILO YACHAQ
-            Text(
-                text = "GESTIÓN DE PLANTAS MINERAS",
-                color = AmarilloMineroBrillante,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.2.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Administración general para agregar y gestionar plantas procesadoras",
-                color = TextoGrisSecundario,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Normal
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "GESTIÓN DE PLANTAS MINERAS",
+                        color = AmarilloMineroBrillante,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Administración general para agregar y gestionar plantas procesadoras",
+                        color = TextoGrisSecundario,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // BUSCADOR INDUSTRIAL
@@ -140,6 +157,7 @@ fun GestionPlantaPantalla() {
                     ) { planta ->
                         PlantaAdminCard(
                             planta = planta,
+                            onGestionarTerminos = { plantaSeleccionadaTerminos = planta },
                             onEliminar = { plantaAEliminar = planta }
                         )
                     }
@@ -158,7 +176,51 @@ fun GestionPlantaPantalla() {
         }
     }
 
-    // DIÁLOGO PARA CREAR PLANTA (COMPONENTE EXTERNO)
+    // DIÁLOGO MODAL FULL-SCREEN PARA GESTIONAR TÉRMINOS DE LA PLANTA SELECCIONADA
+    plantaSeleccionadaTerminos?.let { plantaActual ->
+        Dialog(
+            onDismissRequest = { plantaSeleccionadaTerminos = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = FondoNegroAbsoluto,
+                border = BorderStroke(1.dp, ColorGrisBorde)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // DIÁLOGO MODAL FULL-SCREEN PARA GESTIONAR TÉRMINOS DE LA PLANTA SELECCIONADA
+                    plantaSeleccionadaTerminos?.let { plantaActual ->
+                        TerminosPlanta(
+                            terminosActuales = plantaActual.terminos,
+                            onGuardarTerminos = { nuevosTerminos ->
+                                plantaActual.terminos = nuevosTerminos
+                            },
+                            onDismiss = { plantaSeleccionadaTerminos = null }
+                        )
+                    }
+
+                    // Botón de Cierre en la esquina superior derecha
+                    IconButton(
+                        onClick = { plantaSeleccionadaTerminos = null },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = TextoGrisSecundario
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // DIÁLOGO PARA CREAR PLANTA
     if (mostrarDialogoCrear) {
         DialogoNuevaPlanta(
             onDismiss = { mostrarDialogoCrear = false },
@@ -221,9 +283,13 @@ fun GestionPlantaPantalla() {
     }
 }
 
+// ========================================================
+// COMPONENTE TARJETA PARA CADA PLANTA EN LA LISTA
+// ========================================================
 @Composable
 fun PlantaAdminCard(
     planta: PlantaProcesadora,
+    onGestionarTerminos: () -> Unit,
     onEliminar: () -> Unit
 ) {
     val esOperativa = planta.estado.equals("Operativa", ignoreCase = true)
@@ -312,7 +378,8 @@ fun PlantaAdminCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text("Capacidad:", fontSize = 11.sp, color = TextoGrisSecundario)
@@ -323,13 +390,36 @@ fun PlantaAdminCard(
                         color = TextoBlancoSuave
                     )
                 }
-                Column(horizontalAlignment = Alignment.End) {
+                Column {
                     Text("Alquiler / TM:", fontSize = 11.sp, color = TextoGrisSecundario)
                     Text(
                         text = String.format(Locale.US, "$ %.2f", planta.costoAlquilerPorTM),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = AmarilloMineroBrillante
+                    )
+                }
+
+                // BOTÓN DE TÉRMINOS INDIVIDUAL POR PLANTA
+                OutlinedButton(
+                    onClick = onGestionarTerminos,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AmarilloMineroBrillante),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = AmarilloMineroBrillante
+                    ),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EditNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Términos",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

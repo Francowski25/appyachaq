@@ -30,21 +30,26 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.R
-import com.yachaq.minero.data.Usuario
-import com.yachaq.minero.data.Usuarios
+import com.yachaq.minero.data.remote.RetrofitClient
+import com.yachaq.minero.data.remote.model.AuthLoginRequest
+import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.ui.theme.*
+import kotlinx.coroutines.launch
+import java.io.IOException
 
 @Composable
 fun LoginPantalla(
-    onLoginExitoso: (Usuario) -> Unit,
+    onLoginExitoso: (LoginResponse) -> Unit,
     onIrARegistro: () -> Unit = {}
 ) {
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var claveVisible by remember { mutableStateOf(false) }
     var errorMensaje by remember { mutableStateOf<String?>(null) }
+    var cargando by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     fun ejecutarValidacion() {
         if (correo.isBlank() || clave.isBlank()) {
@@ -52,12 +57,31 @@ fun LoginPantalla(
             return
         }
 
-        val usuarioEncontrado = Usuarios.validar(correo, clave)
-        if (usuarioEncontrado != null) {
-            errorMensaje = null
-            onLoginExitoso(usuarioEncontrado)
-        } else {
-            errorMensaje = "Correo o contraseña incorrectos"
+        scope.launch {
+            cargando = true
+            try {
+                val resp = RetrofitClient.authApi.login(
+                    AuthLoginRequest(email = correo.trim(), password = clave)
+                )
+                if (resp.isSuccessful) {
+                    val datos = resp.body()
+                    if (datos == null || datos.type != "SUCCESS") {
+                        errorMensaje = datos?.listMessage?.firstOrNull() ?: "Respuesta inválida del servidor"
+                    } else {
+                        errorMensaje = null
+                        onLoginExitoso(datos)
+                    }
+                } else {
+                    errorMensaje = when (resp.code()) {
+                        401, 403 -> "Correo o contraseña incorrectos"
+                        else -> "Error del servidor (${resp.code()})"
+                    }
+                }
+            } catch (e: IOException) {
+                errorMensaje = "No se pudo conectar: ${e.message}"
+            } finally {
+                cargando = false
+            }
         }
     }
 
@@ -224,6 +248,7 @@ fun LoginPantalla(
             // BOTÓN DE ACCESO PRINCIPAL
             Button(
                 onClick = { ejecutarValidacion() },
+                enabled = !cargando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
@@ -233,12 +258,20 @@ fun LoginPantalla(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(
-                    text = "INGRESAR",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    letterSpacing = 1.5.sp
-                )
+                if (cargando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "INGRESAR",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        letterSpacing = 1.5.sp
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -265,14 +298,6 @@ fun LoginPantalla(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "admin@yachaq.com / minero@yachaq.com",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
         }
     }
 }

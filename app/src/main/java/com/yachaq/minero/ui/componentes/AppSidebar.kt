@@ -10,8 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Factory
+import androidx.compose.material.icons.filled.HeadsetMic
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -19,26 +22,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yachaq.minero.data.Usuario
+import com.yachaq.minero.data.remote.model.LoginResponse // <-- Importa tu modelo remoto
 import com.yachaq.minero.ui.theme.AmarilloMinero
 import com.yachaq.minero.ui.theme.AmarilloMineroBrillante
 
 @Composable
 fun AppSidebar(
-    usuario: Usuario,
+    usuario: LoginResponse, // <-- Cambiado de Usuario a LoginResponse
     tabSeleccionada: Int,
     onSeleccionarTab: (Int) -> Unit,
     onCerrarSesion: () -> Unit
 ) {
+    // Verificamos si es admin o premium usando los campos de LoginResponse
+    val esRolAdmin = usuario.role?.trim()?.equals("admin", ignoreCase = true) == true
+    val esPremium = usuario.isPremium || esRolAdmin
+
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.width(300.dp)
     ) {
-        // ENCABEZADO PERFIL
+        // ENCABEZADO PERFIL CON FONDO AMARILLO SI ES PREMIUM / ADMIN
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
+                .background(
+                    if (esPremium) AmarilloMinero.copy(alpha = 0.25f)
+                    else MaterialTheme.colorScheme.surface
+                )
                 .padding(24.dp)
         ) {
             Column {
@@ -60,29 +70,65 @@ fun AppSidebar(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = usuario.nombre,
+                    text = usuario.name ?: "Usuario",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = usuario.correo,
+                    text = usuario.email ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = AmarilloMinero.copy(alpha = 0.2f),
-                    border = BorderStroke(1.dp, AmarilloMinero)
-                ) {
-                    Text(
-                        text = usuario.rol.uppercase(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AmarilloMineroBrillante
-                    )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Etiqueta de ROL
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = AmarilloMinero.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, AmarilloMinero)
+                    ) {
+                        Text(
+                            text = (usuario.role ?: "MINERO").uppercase(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AmarilloMineroBrillante
+                        )
+                    }
+
+                    // Etiqueta de PLAN
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (esPremium) AmarilloMineroBrillante else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, AmarilloMineroBrillante)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            if (esPremium) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                            Text(
+                                text = when {
+                                    esRolAdmin -> "ADMIN"
+                                    usuario.isPremium -> "PREMIUM"
+                                    else -> "FREE"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = if (esPremium) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -90,8 +136,7 @@ fun AppSidebar(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ===== OPCIONES COMUNES =====
-        // Tab 0: Calculadora Minera
+        // ===== OPCIONES COMUNES (DISPONIBLES PARA MINEROS Y ADMINS) =====
         NavigationDrawerItem(
             label = { Text("Calculadora Minera") },
             icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
@@ -100,7 +145,6 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
-        // Tab 1: Plantas Mineras
         NavigationDrawerItem(
             label = { Text("Plantas Mineras") },
             icon = { Icon(Icons.Default.Factory, contentDescription = null) },
@@ -109,7 +153,6 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
-        // Tab 2: Seguimiento de Carga (NUEVO MÓDULO)
         NavigationDrawerItem(
             label = { Text("Seguimiento de Carga") },
             icon = { Icon(Icons.Default.LocalShipping, contentDescription = null) },
@@ -118,37 +161,50 @@ fun AppSidebar(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
+        NavigationDrawerItem(
+            label = { Text("Historial de Operaciones") },
+            icon = { Icon(Icons.Default.History, contentDescription = null) },
+            selected = tabSeleccionada == 3,
+            onClick = { onSeleccionarTab(3) },
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Soporte & Asistencia") },
+            icon = { Icon(Icons.Default.HeadsetMic, contentDescription = null) },
+            selected = tabSeleccionada == 7,
+            onClick = { onSeleccionarTab(7) },
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+
         // ===== OPCIONES EXCLUSIVAS PARA ADMINISTRADORES =====
-        if (usuario.rol == "admin") {
+        if (esRolAdmin) {
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            // Tab 3: Gestión de Usuarios
             NavigationDrawerItem(
                 label = { Text("Gestión de Usuarios") },
                 icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = null) },
-                selected = tabSeleccionada == 3,
-                onClick = { onSeleccionarTab(3) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-
-            // Tab 4: Gestión de Plantas
-            NavigationDrawerItem(
-                label = { Text("Gestión de Plantas") },
-                icon = { Icon(Icons.Default.Factory, contentDescription = null) },
                 selected = tabSeleccionada == 4,
                 onClick = { onSeleccionarTab(4) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
 
-            // Tab 5: Gestión de Calculadora (Términos)
+            NavigationDrawerItem(
+                label = { Text("Gestión de Plantas") },
+                icon = { Icon(Icons.Default.Factory, contentDescription = null) },
+                selected = tabSeleccionada == 5,
+                onClick = { onSeleccionarTab(5) },
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
             NavigationDrawerItem(
                 label = { Text("Gestión de Calculadora") },
                 icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
-                selected = tabSeleccionada == 5,
-                onClick = { onSeleccionarTab(5) },
+                selected = tabSeleccionada == 6,
+                onClick = { onSeleccionarTab(6) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
         }

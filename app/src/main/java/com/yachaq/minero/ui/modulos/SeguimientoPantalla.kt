@@ -9,12 +9,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.*
@@ -27,6 +30,15 @@ private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
 @Composable
 fun SeguimientoPantalla() {
     val usuarioActual = SesionUsuario.usuarioActual
+    val esAdmin = usuarioActual?.rol == "admin"
+    val esPremium = usuarioActual?.tienePlanPremium == true
+
+    // REGLA PLAN PREMIUM: Si no es Admin ni Premium, se bloquea el módulo por completo
+    if (!esAdmin && !esPremium) {
+        TarjetaBloqueoSeguimientoPremium()
+        return
+    }
+
     var listaSeguimientos by remember {
         mutableStateOf(SeguimientosRepository.obtenerPorUsuario(usuarioActual?.correo ?: ""))
     }
@@ -105,6 +117,81 @@ fun SeguimientoPantalla() {
     }
 }
 
+// ========================================================
+// TARJETA DE ACCESO RESTRINGIDO POR PLAN PREMIUM
+// ========================================================
+@Composable
+fun TarjetaBloqueoSeguimientoPremium() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, AmarilloMineroBrillante.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = AmarilloMineroBrillante.copy(alpha = 0.15f),
+                    modifier = Modifier.size(70.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = AmarilloMineroBrillante,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Módulo Exclusivo Premium",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    color = AmarilloMineroBrillante,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "El seguimiento en tiempo real, trazabilidad de lotes de mineral y control de días de alquiler en planta requieren una suscripción activa al Plan Premium.",
+                    fontSize = 13.sp,
+                    color = TextoGrisSecundario,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { SesionUsuario.alternarPlanPremiumSimulado() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AmarilloMineroBrillante,
+                        contentColor = FondoNegroAbsoluto
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Icon(Icons.Default.Star, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("ACTIVAR PLAN PREMIUM", fontWeight = FontWeight.Black, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun CardEstadoVacio(onCrearNuevo: () -> Unit) {
     Card(
@@ -136,7 +223,7 @@ private fun CardEstadoVacio(onCrearNuevo: () -> Unit) {
                 text = "No tienes ningún lote de mineral registrado en planta actualmente. Registra la fecha de ingreso para monitorear el tiempo de alquiler.",
                 fontSize = 13.sp,
                 color = TextoGrisSecundario,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(8.dp))

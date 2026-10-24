@@ -3,18 +3,18 @@ package com.yachaq.minero.ui.admin
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.yachaq.minero.data.Usuario
+import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
 import com.yachaq.minero.ui.modulos.SeguimientoPantalla
+import com.yachaq.minero.ui.modulos.HistorialPantalla
 import com.yachaq.minero.ui.modulos.UsuarioPantalla
 import com.yachaq.minero.ui.modulos.GestionPlantaPantalla
-import com.yachaq.minero.ui.modulos.ConfiguracionPantalla
 
 @Composable
 fun DashboardAdminPantalla(
-    usuario: Usuario,
+    usuario: LoginResponse,
     onCerrarSesion: () -> Unit
 ) {
     var tabSeleccionada by remember { mutableIntStateOf(0) }
@@ -35,9 +35,9 @@ fun DashboardAdminPantalla(
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
                 2 -> SeguimientoPantalla()
-                3 -> UsuarioPantalla(usuarioActual = usuario)
-                4 -> GestionPlantaPantalla()
-                5 -> ConfiguracionPantalla()
+                3 -> HistorialPantalla()
+                4 -> UsuarioPantalla(usuarioActual = usuario)
+                5 -> GestionPlantaPantalla()
             }
         }
     }

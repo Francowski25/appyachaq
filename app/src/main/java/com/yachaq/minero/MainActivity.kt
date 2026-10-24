@@ -5,7 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
-import com.yachaq.minero.data.Usuario
+import com.yachaq.minero.data.remote.model.LoginResponse
+import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.admin.DashboardAdminPantalla
 import com.yachaq.minero.ui.auth.LoginPantalla
 import com.yachaq.minero.ui.auth.RegistroPantalla
@@ -18,46 +19,54 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MineroAppTheme {
-                var usuarioActual by remember { mutableStateOf<Usuario?>(null) }
+                var usuarioActual by remember {
+                    mutableStateOf<LoginResponse?>(SesionUsuario.usuarioActual)
+                }
                 var mostrarRegistro by remember { mutableStateOf(false) }
 
+                val usuario = usuarioActual
+
+                val cerrarSesion = {
+                    SesionUsuario.cerrarSesion()
+                    usuarioActual = null
+                }
+
                 when {
-                    // Si no hay usuario autenticado, muestra Login o Registro
-                    usuarioActual == null -> {
+                    // Login / Registro mientras no haya sesión iniciada
+                    usuario == null -> {
                         if (mostrarRegistro) {
                             RegistroPantalla(
-                                onRegistroExitoso = { usuarioCreado ->
-                                    // Inicia sesión automáticamente con el usuario recién creado
-                                    usuarioActual = usuarioCreado
+                                onRegistroExitoso = { datos ->
+                                    SesionUsuario.iniciarSesion(datos)
+                                    usuarioActual = datos
                                     mostrarRegistro = false
                                 },
-                                onVolverALogin = {
-                                    mostrarRegistro = false
-                                }
+                                onVolverALogin = { mostrarRegistro = false }
                             )
                         } else {
                             LoginPantalla(
-                                onLoginExitoso = { usuarioAutenticado ->
-                                    usuarioActual = usuarioAutenticado
+                                onLoginExitoso = { datos ->
+                                    SesionUsuario.iniciarSesion(datos)
+                                    usuarioActual = datos
                                 },
-                                onIrARegistro = {
-                                    mostrarRegistro = true
-                                }
+                                onIrARegistro = { mostrarRegistro = true }
                             )
                         }
                     }
-                    // Si el usuario es Administrador
-                    usuarioActual?.rol == "admin" -> {
+
+                    // Dashboard Administrador
+                    SesionUsuario.esAdmin() -> {
                         DashboardAdminPantalla(
-                            usuario = usuarioActual!!,
-                            onCerrarSesion = { usuarioActual = null }
+                            usuario = usuario,
+                            onCerrarSesion = cerrarSesion
                         )
                     }
-                    // Si el usuario es Minero
-                    usuarioActual?.rol == "minero" -> {
+
+                    // Dashboard Minero (cualquier rol que no sea admin)
+                    else -> {
                         DashboardMineroPantalla(
-                            usuario = usuarioActual!!,
-                            onCerrarSesion = { usuarioActual = null }
+                            usuario = usuario,
+                            onCerrarSesion = cerrarSesion
                         )
                     }
                 }

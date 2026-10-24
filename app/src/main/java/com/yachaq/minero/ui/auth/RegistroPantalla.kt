@@ -27,37 +27,70 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.gson.Gson
 import com.yachaq.minero.R
-import com.yachaq.minero.data.Usuario
-import com.yachaq.minero.logica.ResultadoValidacion // <--- Importado de logica
-import com.yachaq.minero.logica.ValidadorUsuario     // <--- Importado de logica
+import com.yachaq.minero.data.remote.RetrofitClient
+import com.yachaq.minero.data.remote.model.AuthRegisterRequest
+import com.yachaq.minero.data.remote.model.LoginResponse
+import com.yachaq.minero.logica.ResultadoValidacion
+import com.yachaq.minero.logica.ValidadorUsuario
 import com.yachaq.minero.ui.theme.*
+import kotlinx.coroutines.launch
+import retrofit2.Response
+import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroPantalla(
-    onRegistroExitoso: (Usuario) -> Unit,
+    onRegistroExitoso: (LoginResponse) -> Unit,
     onVolverALogin: () -> Unit
 ) {
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var errorMensaje by remember { mutableStateOf<String?>(null) }
+    var cargando by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     fun ejecutarRegistro() {
-        // Validación unificada con la clase ValidadorUsuario
         when (val resultado = ValidadorUsuario.validarFormularioCompleto(nombre, correo, clave)) {
             is ResultadoValidacion.Exito -> {
-                val nuevoUsuario = Usuario(
-                    nombre = nombre.trim(),
-                    correo = correo.trim(),
-                    clave = clave,
-                    rol = "minero"
-                )
-                errorMensaje = null
-                onRegistroExitoso(nuevoUsuario)
+                val correoLimpio = correo.trim()
+                val nombreLimpio = nombre.trim()
+
+                scope.launch {
+                    cargando = true
+                    try {
+                        val resp = RetrofitClient.authApi.register(
+                            AuthRegisterRequest(
+                                email = correoLimpio,
+                                name = nombreLimpio,
+                                password = clave
+                            )
+                        )
+                        if (resp.isSuccessful) {
+                            val datos = resp.body()
+                            if (datos?.type == "SUCCESS") {
+                                errorMensaje = null
+                                onRegistroExitoso(datos)
+                            } else {
+                                errorMensaje = datos?.listMessage?.firstOrNull() ?: "Respuesta inválida del servidor"
+                            }
+                        } else {
+                            errorMensaje = resp.mensajeDeError() ?: when (resp.code()) {
+                                409 -> "El correo ya se encuentra registrado en el sistema."
+                                400 -> "Datos inválidos. Revise el formulario."
+                                else -> "Error del servidor (${resp.code()})"
+                            }
+                        }
+                    } catch (e: IOException) {
+                        errorMensaje = "No se pudo conectar al servidor"
+                    } finally {
+                        cargando = false
+                    }
+                }
             }
             is ResultadoValidacion.Error -> {
                 errorMensaje = resultado.mensaje
@@ -215,6 +248,7 @@ fun RegistroPantalla(
                 // BOTÓN REGISTRAR
                 Button(
                     onClick = { ejecutarRegistro() },
+                    enabled = !cargando,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -224,9 +258,24 @@ fun RegistroPantalla(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text("REGISTRARSE", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    if (cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("REGISTRARSE", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
             }
         }
     }
+}
+private fun <T> Response<T>.mensajeDeError(): String? = try {
+    errorBody()?.string()
+        ?.let { Gson().fromJson(it, LoginResponse::class.java) }
+        ?.listMessage?.firstOrNull()
+} catch (e: Exception) {
+    null
 }

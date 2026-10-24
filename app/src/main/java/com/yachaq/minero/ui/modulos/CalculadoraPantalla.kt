@@ -2,27 +2,28 @@ package com.yachaq.minero.ui.modulos
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yachaq.minero.data.Entrada
 import com.yachaq.minero.data.PlantasProc
-import com.yachaq.minero.data.Resultado
 import com.yachaq.minero.data.SesionUsuario
 import com.yachaq.minero.logica.Calculadora
 import com.yachaq.minero.ui.theme.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun CalculadoraPantalla() {
     val listaPlantas = PlantasProc.lista
 
-    // Recupera automáticamente la planta asociada al usuario activo
     var plantaConfirmada by remember { mutableStateOf(SesionUsuario.obtenerPlantaActiva()) }
     var esConfirmado by remember { mutableStateOf(plantaConfirmada != null) }
 
@@ -35,6 +36,9 @@ fun CalculadoraPantalla() {
 
     var error by remember { mutableStateOf<String?>(null) }
     var resultado by remember { mutableStateOf<Resultado?>(null) }
+    var mostrarDialogoPremium by remember { mutableStateOf(false) }
+
+    val usuarioActual = SesionUsuario.usuarioActual
 
     Column(
         modifier = Modifier
@@ -57,9 +61,43 @@ fun CalculadoraPantalla() {
             fontWeight = FontWeight.Normal
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // 1. Panel de Planta (Guarda en la sesión del usuario)
+        // INSIGNIA DE ESTADO DE PLAN
+        usuarioActual?.let { user ->
+            Surface(
+                color = if (user.tienePlanPremium || user.rol == "admin") AmarilloMinero.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(20.dp),
+                border = if (user.tienePlanPremium || user.rol == "admin") androidx.compose.foundation.BorderStroke(1.dp, AmarilloMineroBrillante) else null
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (user.tienePlanPremium || user.rol == "admin") Icons.Default.Star else Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = if (user.tienePlanPremium || user.rol == "admin") AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = when {
+                            user.rol == "admin" -> "MODO ADMINISTRADOR (Ilimitado)"
+                            user.tienePlanPremium -> "PLAN PREMIUM (Consultas Ilimitadas)"
+                            else -> "PLAN GRATUITO: ${user.contadorConsultas}/10 Consultas Usadas"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (user.tienePlanPremium || user.rol == "admin") AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 1. Panel de Planta
         SeccionPlantaCard(
             listaPlantas = listaPlantas,
             esConfirmado = esConfirmado,
@@ -67,13 +105,13 @@ fun CalculadoraPantalla() {
             onConfirmar = { planta ->
                 plantaConfirmada = planta
                 esConfirmado = true
-                SesionUsuario.guardarPlantaActiva(planta) // Asocia la planta al usuario
+                SesionUsuario.guardarPlantaActiva(planta)
                 error = null
             },
             onCambiar = {
                 esConfirmado = false
                 plantaConfirmada = null
-                SesionUsuario.guardarPlantaActiva(null) // Desvincula la planta
+                SesionUsuario.guardarPlantaActiva(null)
                 resultado = null
             }
         )
@@ -117,6 +155,12 @@ fun CalculadoraPantalla() {
         // Botón Calcular
         Button(
             onClick = {
+                // VERIFICACIÓN REGLA PREMIUM
+                if (!SesionUsuario.puedeRealizarConsulta()) {
+                    mostrarDialogoPremium = true
+                    return@Button
+                }
+
                 val t = tonelaje.toDoubleOrNull()
                 val l = ley.toDoubleOrNull()
                 val p = precio.toDoubleOrNull()
@@ -146,6 +190,8 @@ fun CalculadoraPantalla() {
                             error = "El cálculo no generó concentrado válido."
                             resultado = null
                         } else {
+                            // REGISTRA LA CONSULTA CONSUMIDA
+                            SesionUsuario.registrarConsulta()
                             error = null
                             resultado = r
                         }
@@ -180,6 +226,55 @@ fun CalculadoraPantalla() {
             "Los parámetros adicionales de liquidación son administrados centralmente.",
             color = TextoGrisSecundario,
             fontSize = 11.sp
+        )
+    }
+
+    // DIÁLOGO DE LÍMITE DE CONSULTAS PREMIUM REACHED
+    if (mostrarDialogoPremium) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoPremium = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = AmarilloMineroBrillante,
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Límite Gratuito Alcanzado",
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Has alcanzado el límite de 10 consultas gratuitas. Actualiza a Plan Premium para continuar realizando cálculos de liquidación ilimitados.",
+                    textAlign = TextAlign.Center,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        SesionUsuario.alternarPlanPremiumSimulado()
+                        mostrarDialogoPremium = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto)
+                ) {
+                    Text("ACTIVAR PREMIUM (SIMULACIÓN)", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoPremium = false }) {
+                    Text("CERRAR", color = MaterialTheme.colorScheme.outline)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
