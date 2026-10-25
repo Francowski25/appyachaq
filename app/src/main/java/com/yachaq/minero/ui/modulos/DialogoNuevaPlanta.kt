@@ -11,24 +11,70 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yachaq.minero.data.PlantaProcesadora
-import com.yachaq.minero.data.PlantasProc
+import com.yachaq.minero.data.remote.RetrofitClient
+import com.yachaq.minero.data.remote.model.RequestPlant
+import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun DialogoNuevaPlanta(
     onDismiss: () -> Unit,
-    onGuardar: (PlantaProcesadora) -> Unit
+    onCreada: (ResponsePlant) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var nombre by remember { mutableStateOf("") }
     var ubicacion by remember { mutableStateOf("") }
     var capacidad by remember { mutableStateOf("") }
     var costoAlquiler by remember { mutableStateOf("") }
     var estado by remember { mutableStateOf("Operativa") }
     var error by remember { mutableStateOf<String?>(null) }
+    var guardando by remember { mutableStateOf(false) }
+
+    fun guardar() {
+        val cap = capacidad.toDoubleOrNull()
+        val costo = costoAlquiler.toDoubleOrNull()
+
+        if (nombre.isBlank() || ubicacion.isBlank() || cap == null || costo == null) {
+            error = "Por favor complete todos los campos con valores válidos."
+            return
+        }
+        if (cap <= 0 || costo < 0) {
+            error = "La capacidad debe ser mayor que cero y el costo no puede ser negativo."
+            return
+        }
+
+        scope.launch {
+            guardando = true
+            error = null
+            try {
+                val resp = RetrofitClient.plantApi.crearPlanta(
+                    RequestPlant(
+                        name = nombre.trim(),
+                        location = ubicacion.trim(),
+                        capacityTMAD = cap,
+                        rentalCostPerTM = costo,
+                        status = estado
+                    )
+                )
+                val body = resp.body()
+                if (resp.isSuccessful && body?.type == "SUCCESS") {
+                    onCreada(body)
+                } else {
+                    error = body?.listMessage?.firstOrNull()
+                        ?: "Error del servidor (${resp.code()})"
+                }
+            } catch (e: Exception) {
+                error = "No se pudo conectar: ${e.message}"
+            } finally {
+                guardando = false
+            }
+        }
+    }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!guardando) onDismiss() },
         shape = RoundedCornerShape(20.dp),
         containerColor = FondoNegroSecundario,
         title = {
@@ -42,67 +88,18 @@ fun DialogoNuevaPlanta(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it; error = null },
-                    label = { Text("Nombre de la Planta") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                        focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                        focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = ubicacion,
-                    onValueChange = { ubicacion = it; error = null },
-                    label = { Text("Ubicación (Ej. Abancay, Apurímac)") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                        focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                        focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = capacidad,
-                    onValueChange = { capacidad = it.replace(',', '.'); error = null },
-                    label = { Text("Capacidad TMAD") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                        focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                        focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = costoAlquiler,
-                    onValueChange = { costoAlquiler = it.replace(',', '.'); error = null },
-                    label = { Text("Costo Alquiler por TM ($)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                        focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                        focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                CampoPlanta(nombre, "Nombre de la Planta", enabled = !guardando) {
+                    nombre = it; error = null
+                }
+                CampoPlanta(ubicacion, "Ubicación (Ej. Abancay, Apurímac)", enabled = !guardando) {
+                    ubicacion = it; error = null
+                }
+                CampoPlanta(capacidad, "Capacidad TMAD", decimal = true, enabled = !guardando) {
+                    capacidad = it.replace(',', '.'); error = null
+                }
+                CampoPlanta(costoAlquiler, "Costo Alquiler por TM ($)", decimal = true, enabled = !guardando) {
+                    costoAlquiler = it.replace(',', '.'); error = null
+                }
 
                 Text(
                     text = "Estado Inicial:",
@@ -118,7 +115,7 @@ fun DialogoNuevaPlanta(
                     listOf("Operativa", "Mantenimiento").forEach { opcion ->
                         val seleccionado = estado == opcion
                         Surface(
-                            onClick = { estado = opcion },
+                            onClick = { if (!guardando) estado = opcion },
                             shape = RoundedCornerShape(12.dp),
                             color = if (seleccionado) AmarilloMineroBrillante else GrisCampos,
                             modifier = Modifier
@@ -144,39 +141,56 @@ fun DialogoNuevaPlanta(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val capDouble = capacidad.toDoubleOrNull()
-                    val costoDouble = costoAlquiler.toDoubleOrNull()
-
-                    if (nombre.isBlank() || ubicacion.isBlank() || capDouble == null || costoDouble == null) {
-                        error = "Por favor complete todos los campos con valores válidos."
-                    } else {
-                        val nuevoId = (PlantasProc.lista.maxOfOrNull { it.id } ?: 0) + 1
-                        onGuardar(
-                            PlantaProcesadora(
-                                id = nuevoId,
-                                nombre = nombre.trim(),
-                                ubicacion = ubicacion.trim(),
-                                capacidadTMAD = capDouble,
-                                costoAlquilerPorTM = costoDouble,
-                                estado = estado
-                            )
-                        )
-                    }
-                },
+                onClick = { guardar() },
+                enabled = !guardando,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AmarilloMineroBrillante,
                     contentColor = FondoNegroAbsoluto
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Guardar Planta", fontWeight = FontWeight.Black)
+                if (guardando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = FondoNegroAbsoluto,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar Planta", fontWeight = FontWeight.Black)
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !guardando) {
                 Text("Cancelar", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
             }
         }
+    )
+}
+
+@Composable
+private fun CampoPlanta(
+    valor: String,
+    etiqueta: String,
+    decimal: Boolean = false,
+    enabled: Boolean = true,
+    onCambio: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onCambio,
+        label = { Text(etiqueta) },
+        enabled = enabled,
+        singleLine = true,
+        keyboardOptions = if (decimal) KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        else KeyboardOptions.Default,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
+            focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
+            focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
+            focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     )
 }

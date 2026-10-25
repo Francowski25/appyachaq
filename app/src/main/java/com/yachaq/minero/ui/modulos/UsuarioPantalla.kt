@@ -26,34 +26,112 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yachaq.minero.data.Usuario
-import com.yachaq.minero.data.UsuarioEstado
-import com.yachaq.minero.data.Usuarios
+import com.yachaq.minero.data.remote.RetrofitClient
+import com.yachaq.minero.data.remote.model.RequestUserAdmin
+import com.yachaq.minero.data.remote.model.ResponseUser
+import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.logica.ResultadoValidacion
 import com.yachaq.minero.logica.ValidadorUsuario
 import com.yachaq.minero.ui.theme.GrisCampos
+import kotlinx.coroutines.launch
 
 @Composable
-fun UsuarioPantalla(usuarioActual: Usuario? = null) {
-    val listaFiltrada = remember(usuarioActual) {
-        Usuarios.lista
-            .filter { it.correo != usuarioActual?.correo }
-            .map { UsuarioEstado(it, esActivo = true) }
+fun UsuarioPantalla() {
+    val scope = rememberCoroutineScope()
+    val idUsuarioActual = SesionUsuario.usuarioActual?.idUser // AJUSTAR: campo real en LoginResponse
+
+    // ---------- Datos desde el backend ----------
+    var usuarios by remember { mutableStateOf<List<ResponseUser>>(emptyList()) }
+    var cargando by remember { mutableStateOf(true) }
+    var errorLista by remember { mutableStateOf<String?>(null) }
+    var recargar by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(recargar) {
+        cargando = true
+        errorLista = null
+        try {
+            val resp = RetrofitClient.userApi.listarUsuarios()
+            if (resp.isSuccessful) {
+                usuarios = resp.body().orEmpty()
+            } else {
+                errorLista = "Error al cargar usuarios (${resp.code()})"
+            }
+        } catch (e: Exception) {
+            errorLista = "No se pudo conectar: ${e.message}"
+        } finally {
+            cargando = false
+        }
     }
 
-    val usuariosEstado = remember { mutableStateListOf(*listaFiltrada.toTypedArray()) }
+    // ---------- Estado de UI ----------
     var textoBusqueda by remember { mutableStateOf("") }
     var mostrarDialogoAgregar by remember { mutableStateOf(false) }
-    var usuarioAEliminar by remember { mutableStateOf<UsuarioEstado?>(null) }
+    var usuarioAEliminar by remember { mutableStateOf<ResponseUser?>(null) }
+    var eliminando by remember { mutableStateOf(false) }
+    var errorEliminar by remember { mutableStateOf<String?>(null) }
+    var procesandoId by remember { mutableStateOf<String?>(null) }
+    var errorAccion by remember { mutableStateOf<String?>(null) }
 
-    // Filtrar la lista en tiempo real según el texto de búsqueda (por nombre o correo)
-    val usuariosVisibles = remember(textoBusqueda, usuariosEstado.toList()) {
-        if (textoBusqueda.isBlank()) {
-            usuariosEstado
-        } else {
-            usuariosEstado.filter {
-                it.usuario.nombre.contains(textoBusqueda, ignoreCase = true) ||
-                        it.usuario.correo.contains(textoBusqueda, ignoreCase = true)
+    val usuariosVisibles = remember(textoBusqueda, usuarios, idUsuarioActual) {
+        usuarios
+            .filter { it.idUser != idUsuarioActual }
+            .filter {
+                textoBusqueda.isBlank() ||
+                        (it.name ?: "").contains(textoBusqueda, ignoreCase = true) ||
+                        (it.email ?: "").contains(textoBusqueda, ignoreCase = true)
+            }
+    }
+
+    fun alternarEstado(u: ResponseUser) {
+        val id = u.idUser ?: return
+        scope.launch {
+            procesandoId = id
+            errorAccion = null
+            try {
+                val resp = RetrofitClient.userApi.editarUsuario(
+                    id,
+                    RequestUserAdmin(
+                        name = u.name.orEmpty(),
+                        email = u.email.orEmpty(),
+                        password = null,
+                        role = u.role ?: "minero",
+                        status = !(u.status ?: true)
+                    )
+                )
+                val body = resp.body()
+                if (resp.isSuccessful && body?.type == "SUCCESS") {
+                    usuarios = usuarios.map { if (it.idUser == id) body else it }
+                } else {
+                    errorAccion = body?.listMessage?.firstOrNull()
+                        ?: "No se pudo actualizar (${resp.code()})"
+                }
+            } catch (e: Exception) {
+                errorAccion = "No se pudo conectar: ${e.message}"
+            } finally {
+                procesandoId = null
+            }
+        }
+    }
+
+    fun eliminar(u: ResponseUser) {
+        val id = u.idUser ?: return
+        scope.launch {
+            eliminando = true
+            errorEliminar = null
+            try {
+                val resp = RetrofitClient.userApi.eliminarUsuario(id)
+                val body = resp.body()
+                if (resp.isSuccessful && body?.type == "SUCCESS") {
+                    usuarios = usuarios.filterNot { it.idUser == id }
+                    usuarioAEliminar = null
+                } else {
+                    errorEliminar = body?.listMessage?.firstOrNull()
+                        ?: "No se pudo eliminar (${resp.code()})"
+                }
+            } catch (e: Exception) {
+                errorEliminar = "No se pudo conectar: ${e.message}"
+            } finally {
+                eliminando = false
             }
         }
     }
@@ -78,9 +156,6 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ========================================================
-            // BUSCADOR
-            // ========================================================
             OutlinedTextField(
                 value = textoBusqueda,
                 onValueChange = { textoBusqueda = it },
@@ -101,16 +176,31 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
                 )
             )
 
+            errorAccion?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ========================================================
-            // LISTA O MENSAJE DE ERROR SI NO SE ENCUENTRA
-            // ========================================================
-            if (usuariosVisibles.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+            when {
+                cargando -> Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+
+                errorLista != null -> Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(errorLista.orEmpty(), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                        TextButton(onClick = { recargar++ }) { Text("REINTENTAR") }
+                    }
+                }
+
+                usuariosVisibles.isEmpty() -> Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -130,35 +220,32 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(
-                            text = "No hay resultados para \"$textoBusqueda\". Intente con otro término.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
+                        if (textoBusqueda.isNotBlank()) {
+                            Text(
+                                text = "No hay resultados para \"$textoBusqueda\". Intente con otro término.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
-            } else {
-                LazyColumn(
+
+                else -> LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                    modifier = Modifier.fillMaxWidth().weight(1f)
                 ) {
                     items(
                         items = usuariosVisibles,
-                        key = { it.usuario.correo }
-                    ) { item ->
+                        key = { it.idUser ?: it.hashCode() }
+                    ) { usuario ->
                         UsuarioCardMejorada(
-                            item = item,
-                            onToggleEstado = {
-                                val index = usuariosEstado.indexOf(item)
-                                if (index != -1) {
-                                    usuariosEstado[index] = item.copy(esActivo = !item.esActivo)
-                                }
-                            },
+                            usuario = usuario,
+                            procesando = procesandoId != null && procesandoId == usuario.idUser,
+                            onToggleEstado = { alternarEstado(usuario) },
                             onEliminar = {
-                                usuarioAEliminar = item
+                                errorEliminar = null
+                                usuarioAEliminar = usuario
                             }
                         )
                     }
@@ -179,17 +266,16 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
     if (mostrarDialogoAgregar) {
         DialogoNuevoUsuarioMejorado(
             onDismiss = { mostrarDialogoAgregar = false },
-            onGuardar = { nuevoUsuario ->
-                Usuarios.lista = Usuarios.lista + nuevoUsuario
-                usuariosEstado.add(UsuarioEstado(nuevoUsuario, esActivo = true))
+            onCreado = {
                 mostrarDialogoAgregar = false
+                recargar++
             }
         )
     }
 
-    usuarioAEliminar?.let { item ->
+    usuarioAEliminar?.let { u ->
         AlertDialog(
-            onDismissRequest = { usuarioAEliminar = null },
+            onDismissRequest = { if (!eliminando) usuarioAEliminar = null },
             icon = {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -197,30 +283,38 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = {
-                Text(text = "Eliminar Usuario", fontWeight = FontWeight.Bold)
-            },
+            title = { Text(text = "Eliminar Usuario", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    text = "¿Está seguro de que desea eliminar a '${item.usuario.nombre}'? Esta acción no se puede deshacer.",
-                    fontSize = 14.sp
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "¿Está seguro de que desea eliminar a '${u.name ?: ""}'? Esta acción no se puede deshacer.",
+                        fontSize = 14.sp
+                    )
+                    errorEliminar?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        Usuarios.lista = Usuarios.lista.filter { it.correo != item.usuario.correo }
-                        usuariosEstado.remove(item)
-                        usuarioAEliminar = null
-                    },
+                    onClick = { eliminar(u) },
+                    enabled = !eliminando,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Eliminar", fontWeight = FontWeight.Bold)
+                    if (eliminando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Eliminar", fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { usuarioAEliminar = null }) {
+                TextButton(onClick = { usuarioAEliminar = null }, enabled = !eliminando) {
                     Text("Cancelar")
                 }
             },
@@ -231,17 +325,20 @@ fun UsuarioPantalla(usuarioActual: Usuario? = null) {
 
 @Composable
 fun UsuarioCardMejorada(
-    item: UsuarioEstado,
+    usuario: ResponseUser,
+    procesando: Boolean,
     onToggleEstado: () -> Unit,
     onEliminar: () -> Unit
 ) {
-    val u = item.usuario
-    val esAdmin = u.rol.equals("admin", ignoreCase = true)
+    val activo = usuario.status ?: true
+    val rol = usuario.role ?: "minero"
+    val esAdmin = rol.equals("admin", ignoreCase = true)
     val rolColor = if (esAdmin) MaterialTheme.colorScheme.primary else Color(0xFFFFB300)
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = if (item.esActivo) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = if (activo) MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
@@ -259,26 +356,27 @@ fun UsuarioCardMejorada(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (item.esActivo) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.2f),
+                        color = if (activo) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.2f),
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = if (item.esActivo) MaterialTheme.colorScheme.primary else Color.Gray
+                                tint = if (activo) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         }
                     }
                     Column {
                         Text(
-                            text = u.nombre,
+                            text = usuario.name ?: "Sin nombre",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (item.esActivo) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = if (activo) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = u.correo,
+                            text = usuario.email ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -289,12 +387,9 @@ fun UsuarioCardMejorada(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = rolColor.copy(alpha = 0.2f)
-                    ) {
+                    Surface(shape = RoundedCornerShape(8.dp), color = rolColor.copy(alpha = 0.2f)) {
                         Text(
-                            text = u.rol.uppercase(),
+                            text = rol.uppercase(),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -302,7 +397,7 @@ fun UsuarioCardMejorada(
                         )
                     }
 
-                    IconButton(onClick = onEliminar) {
+                    IconButton(onClick = onEliminar, enabled = !procesando) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Eliminar usuario",
@@ -326,32 +421,37 @@ fun UsuarioCardMejorada(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        imageVector = if (item.esActivo) Icons.Default.CheckCircle else Icons.Default.Block,
+                        imageVector = if (activo) Icons.Default.CheckCircle else Icons.Default.Block,
                         contentDescription = null,
-                        tint = if (item.esActivo) Color(0xFF4CAF50) else Color(0xFFE53935),
+                        tint = if (activo) Color(0xFF4CAF50) else Color(0xFFE53935),
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = if (item.esActivo) "Cuenta Activa" else "Cuenta Inhabilitada",
+                        text = if (activo) "Cuenta Activa" else "Cuenta Inhabilitada",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (item.esActivo) Color(0xFF4CAF50) else Color(0xFFE53935)
+                        color = if (activo) Color(0xFF4CAF50) else Color(0xFFE53935)
                     )
                 }
 
                 OutlinedButton(
                     onClick = onToggleEstado,
+                    enabled = !procesando,
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (item.esActivo) Color(0xFFE53935) else MaterialTheme.colorScheme.primary
+                        contentColor = if (activo) Color(0xFFE53935) else MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(
-                        text = if (item.esActivo) "Inhabilitar" else "Habilitar",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (procesando) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(
+                            text = if (activo) "Inhabilitar" else "Habilitar",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -361,17 +461,52 @@ fun UsuarioCardMejorada(
 @Composable
 private fun DialogoNuevoUsuarioMejorado(
     onDismiss: () -> Unit,
-    onGuardar: (Usuario) -> Unit
+    onCreado: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var rol by remember { mutableStateOf("minero") }
     var claveVisible by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var guardando by remember { mutableStateOf(false) }
+
+    fun guardar() {
+        when (val validacion = ValidadorUsuario.validarFormularioCompleto(nombre, correo, clave)) {
+            is ResultadoValidacion.Error -> error = validacion.mensaje
+            is ResultadoValidacion.Exito -> scope.launch {
+                guardando = true
+                error = null
+                try {
+                    val resp = RetrofitClient.userApi.crearUsuario(
+                        RequestUserAdmin(
+                            name = nombre.trim(),
+                            email = correo.trim(),
+                            password = clave,
+                            role = rol,
+                            status = true
+                        )
+                    )
+                    val body = resp.body()
+                    if (resp.isSuccessful && body?.type == "SUCCESS") {
+                        onCreado()
+                    } else {
+                        error = body?.listMessage?.firstOrNull()
+                            ?: "Error del servidor (${resp.code()})"
+                    }
+                } catch (e: Exception) {
+                    error = "No se pudo conectar: ${e.message}"
+                } finally {
+                    guardando = false
+                }
+            }
+        }
+    }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!guardando) onDismiss() },
         shape = RoundedCornerShape(24.dp),
         title = {
             Row(
@@ -398,6 +533,7 @@ private fun DialogoNuevoUsuarioMejorado(
                     value = nombre,
                     onValueChange = { nombre = it; error = null },
                     label = { Text("Nombre Completo") },
+                    enabled = !guardando,
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -407,6 +543,7 @@ private fun DialogoNuevoUsuarioMejorado(
                     value = correo,
                     onValueChange = { correo = it; error = null },
                     label = { Text("Correo Electrónico") },
+                    enabled = !guardando,
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -416,6 +553,7 @@ private fun DialogoNuevoUsuarioMejorado(
                     value = clave,
                     onValueChange = { clave = it; error = null },
                     label = { Text("Contraseña de Acceso") },
+                    enabled = !guardando,
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -446,7 +584,7 @@ private fun DialogoNuevoUsuarioMejorado(
                         val seleccionado = rol == claveRol
                         Surface(
                             selected = seleccionado,
-                            onClick = { rol = claveRol },
+                            onClick = { if (!guardando) rol = claveRol },
                             shape = RoundedCornerShape(12.dp),
                             color = if (seleccionado) MaterialTheme.colorScheme.primary else GrisCampos,
                             modifier = Modifier
@@ -456,7 +594,8 @@ private fun DialogoNuevoUsuarioMejorado(
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = etiqueta,
-                                    color = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    color = if (seleccionado) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 )
@@ -472,25 +611,23 @@ private fun DialogoNuevoUsuarioMejorado(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    when (val resultado = ValidadorUsuario.validarFormularioCompleto(nombre, correo, clave)) {
-                        is ResultadoValidacion.Exito -> {
-                            onGuardar(Usuario(nombre.trim(), correo.trim(), clave, rol))
-                        }
-                        is ResultadoValidacion.Error -> {
-                            error = resultado.mensaje
-                        }
-                    }
-                },
+                onClick = { guardar() },
+                enabled = !guardando,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Guardar Usuario", fontWeight = FontWeight.Bold)
+                if (guardando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar Usuario", fontWeight = FontWeight.Bold)
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
+            TextButton(onClick = onDismiss, enabled = !guardando) { Text("Cancelar") }
         }
     )
 }

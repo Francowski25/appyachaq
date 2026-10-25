@@ -19,23 +19,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yachaq.minero.data.PlantaProcesadora
+import com.yachaq.minero.data.remote.model.ResponseCalculo
+import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.ui.theme.*
 import java.util.Locale
 
 private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
 private fun toneladas(v: Double) = String.format(Locale.US, "%.2f TM", v)
-private fun porcentaje(v: Double) = String.format(Locale.US, "%.2f %%", v)
+
+private fun ResponsePlant.alquiler() = String.format(Locale.US, "%.2f", rentalCostPerTM ?: 0.0)
 
 @Composable
 fun SeccionPlantaCard(
-    listaPlantas: List<PlantaProcesadora>,
+    listaPlantas: List<ResponsePlant>,
     esConfirmado: Boolean,
-    plantaConfirmada: PlantaProcesadora?,
-    onConfirmar: (PlantaProcesadora) -> Unit,
+    plantaConfirmada: ResponsePlant?,
+    onConfirmar: (ResponsePlant) -> Unit,
     onCambiar: () -> Unit
 ) {
-    var plantaSeleccionadaTemp by remember { mutableStateOf(listaPlantas.firstOrNull()) }
+    var plantaSeleccionadaTemp by remember(listaPlantas) { mutableStateOf(listaPlantas.firstOrNull()) }
     var expanded by remember { mutableStateOf(false) }
     var mostrarDialogoCambiar by remember { mutableStateOf(false) }
 
@@ -89,7 +91,7 @@ fun SeccionPlantaCard(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = plantaSeleccionadaTemp?.nombre ?: "Seleccionar...",
+                                        text = plantaSeleccionadaTemp?.name ?: "Seleccionar...",
                                         color = TextoBlancoSuave,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
@@ -97,7 +99,7 @@ fun SeccionPlantaCard(
                                     )
                                     plantaSeleccionadaTemp?.let { p ->
                                         Text(
-                                            text = "${p.ubicacion} | Alquiler: $${p.costoAlquilerPorTM}/TM",
+                                            text = "${p.location ?: ""} | Alquiler: $${p.alquiler()}/TM",
                                             color = TextoGrisSecundario,
                                             fontSize = 10.sp,
                                             maxLines = 1
@@ -127,10 +129,10 @@ fun SeccionPlantaCard(
                                         ) {
                                             Icon(Icons.Default.Factory, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(20.dp))
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(planta.nombre, color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Text(planta.name ?: "", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    Text("📍 ${planta.ubicacion}", color = TextoGrisSecundario, fontSize = 11.sp)
-                                                    Text("💵 $${planta.costoAlquilerPorTM}/TM", color = AmarilloMineroBrillante, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    Text("📍 ${planta.location ?: ""}", color = TextoGrisSecundario, fontSize = 11.sp)
+                                                    Text("💵 $${planta.alquiler()}/TM", color = AmarilloMineroBrillante, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                                 }
                                             }
                                         }
@@ -146,11 +148,8 @@ fun SeccionPlantaCard(
                     }
 
                     Button(
-                        onClick = {
-                            if (plantaSeleccionadaTemp != null) {
-                                onConfirmar(plantaSeleccionadaTemp!!)
-                            }
-                        },
+                        onClick = { plantaSeleccionadaTemp?.let { onConfirmar(it) } },
+                        enabled = plantaSeleccionadaTemp != null,
                         colors = ButtonDefaults.buttonColors(containerColor = FondoNegroAbsoluto, contentColor = AmarilloMineroBrillante),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.height(52.dp)
@@ -176,8 +175,8 @@ fun SeccionPlantaCard(
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(22.dp))
                             Column {
-                                Text(plantaConfirmada?.nombre ?: "", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("📍 ${plantaConfirmada?.ubicacion} | Alquiler: $${plantaConfirmada?.costoAlquilerPorTM}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
+                                Text(plantaConfirmada?.name ?: "", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("📍 ${plantaConfirmada?.location ?: ""} | Alquiler: $${plantaConfirmada?.alquiler() ?: "0.00"}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
                             }
                         }
 
@@ -210,15 +209,15 @@ fun SeccionPlantaCard(
                         Surface(shape = RoundedCornerShape(14.dp), color = GrisCampos, border = BorderStroke(1.dp, ColorGrisBorde), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("PLANTA ACTUALMENTE ACTIVA", fontSize = 10.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
-                                Text(planta.nombre, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextoBlancoSuave)
+                                Text(planta.name ?: "", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextoBlancoSuave)
                                 HorizontalDivider(color = ColorGrisBorde)
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("Ubicación:", fontSize = 12.sp, color = TextoGrisSecundario)
-                                    Text(planta.ubicacion, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
+                                    Text(planta.location ?: "", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
                                 }
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("Costo Alquiler:", fontSize = 12.sp, color = TextoGrisSecundario)
-                                    Text("$ ${String.format(Locale.US, "%.2f", planta.costoAlquilerPorTM)} / TM", fontSize = 14.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
+                                    Text("$ ${planta.alquiler()} / TM", fontSize = 14.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
                                 }
                             }
                         }
@@ -307,7 +306,16 @@ fun SeccionCamposEntrada(
 }
 
 @Composable
-fun SeccionResultadosCard(resultado: Resultado, plantaConfirmada: PlantaProcesadora?) {
+fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: ResponsePlant?) {
+    val totalAPagar = resultado.totalAPagar ?: 0.0
+    val tmns = resultado.tmns ?: 0.0
+    val tmHumedas = resultado.tmHumedas ?: 0.0
+    val pagoTotal = resultado.pagoTotal ?: 0.0
+    val valorNeto = resultado.valorNeto ?: 0.0
+    val igv = resultado.igv ?: 0.0
+    val detraccion = resultado.detraccion ?: 0.0
+    val alquilerTotal = resultado.alquilerTotal ?: 0.0
+
     Card(
         colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
         shape = RoundedCornerShape(20.dp),
@@ -319,8 +327,8 @@ fun SeccionResultadosCard(resultado: Resultado, plantaConfirmada: PlantaProcesad
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("PLANTA DESTINO DE PROCESAMIENTO", color = AmarilloMineroBrillante, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(2.dp))
-                    Text(plantaConfirmada?.nombre ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Ubicación: ${plantaConfirmada?.ubicacion ?: ""} | Alquiler: $${plantaConfirmada?.costoAlquilerPorTM ?: 0.0}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
+                    Text(plantaConfirmada?.name ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Ubicación: ${plantaConfirmada?.location ?: ""} | Alquiler: $${plantaConfirmada?.alquiler() ?: "0.00"}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
                 }
             }
 
@@ -329,7 +337,12 @@ fun SeccionResultadosCard(resultado: Resultado, plantaConfirmada: PlantaProcesad
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("LIQUIDACIÓN TOTAL A PAGAR", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
-                Text(dolares(resultado.totalAPagar), color = if (resultado.totalAPagar >= 0) AmarilloMineroBrillante else ErrorRojo, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                Text(
+                    dolares(totalAPagar),
+                    color = if (totalAPagar >= 0) AmarilloMineroBrillante else ErrorRojo,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
 
             Spacer(Modifier.height(4.dp))
@@ -337,37 +350,24 @@ fun SeccionResultadosCard(resultado: Resultado, plantaConfirmada: PlantaProcesad
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("TONELADAS DE CONCENTRADO (TMNS)", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
-                Text(toneladas(resultado.tmns), color = TextoBlancoSuave, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                Text(toneladas(tmns), color = TextoBlancoSuave, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
             }
 
             HorizontalDivider(color = ColorGrisBorde)
 
             SeccionTitulo("1. Valor del Concentrado")
-            Fila("TM Húmedas de Concentrado", toneladas(resultado.tmHumedas))
-            val porcentajeHumedad = if (resultado.tmHumedas > 0) ((resultado.tmHumedas - resultado.tmns) / resultado.tmHumedas) * 100 else 8.00
-            Fila("% de Agua (Humedad)", porcentaje(porcentajeHumedad))
-            Fila("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", resultado.tmns))
-            Fila("Pago por Cobre (Cu)", dolares(resultado.pagoCu))
-            Fila("Pago por Plata (Ag)", dolares(resultado.pagoAg))
-            Fila("Pago por Oro (Au)", dolares(resultado.pagoAu))
+            Fila("TM Húmedas de Concentrado", toneladas(tmHumedas))
+            Fila("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", tmns))
+            Fila("Pago Bruto", dolares(pagoTotal))
 
             HorizontalDivider(color = ColorGrisBorde)
 
-            SeccionTitulo("2. Reducciones y Gastos")
-            Fila("Maquila", "- " + dolares(resultado.maquila))
-            Fila("Gastos de Refinación", "- " + dolares(resultado.reduccionRefinacion))
-            Fila("Análisis", "- " + dolares(resultado.analisis))
-            Fila("Traslado Interno", "- " + dolares(resultado.trasladoInterno))
-            Fila("Pago por TM de Concentrado", dolares(resultado.pagoPorTm))
-
-            HorizontalDivider(color = ColorGrisBorde)
-
-            SeccionTitulo("3. Liquidación Final")
-            Fila("Valor Neto", dolares(resultado.valorNeto))
-            Fila("IGV (18 %)", dolares(resultado.igv))
-            Fila("Valor Total", dolares(resultado.valorTotal))
-            Fila("Detracción (10 %)", "- " + dolares(resultado.detraccion))
-            Fila("Alquiler de Planta", "- " + dolares(resultado.alquilerTotal))
+            SeccionTitulo("2. Liquidación Final")
+            Fila("Valor Neto", dolares(valorNeto))
+            Fila("IGV (18 %)", dolares(igv))
+            Fila("Valor Total", dolares(valorNeto + igv))
+            Fila("Detracción (10 %)", "- " + dolares(detraccion))
+            Fila("Alquiler de Planta", "- " + dolares(alquilerTotal))
         }
     }
 }

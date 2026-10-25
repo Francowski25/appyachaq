@@ -3,5 +3,9 @@
 
 export type { AuthLoginRequest } from './models/auth-login-request';
 export type { AuthRegisterRequest } from './models/auth-register-request';
+export type { CalculatorCalcularRequest } from './models/calculator-calcular-request';
 export type { PlantAddRequest } from './models/plant-add-request';
 export type { PlantUpdateRequest } from './models/plant-update-request';
+export type { TrackingAddRequest } from './models/tracking-add-request';
+export type { UserAddRequest } from './models/user-add-request';
+export type { UserUpdateRequest } from './models/user-update-request';
