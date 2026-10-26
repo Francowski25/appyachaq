@@ -21,9 +21,9 @@ fun DashboardAdminPantalla(
     val tituloActual = when (tabSeleccionada) {
         0 -> "Calculadora Minera"
         1 -> "Plantas Mineras"
-        3 -> "Historial de Operaciones"
-        4 -> "Gestión de Usuarios"
-        5 -> "Gestión de Plantas"
+        2 -> "Historial de Operaciones"
+        3 -> "Gestión de Usuarios"
+        4 -> "Gestión de Plantas"
         else -> "Minero Yachaq"
     }
 
@@ -42,9 +42,9 @@ fun DashboardAdminPantalla(
             when (tabSeleccionada) {
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
-                3 -> HistorialPantalla()
-                4 -> UsuarioPantalla()
-                5 -> GestionPlantaPantalla()
+                2 -> HistorialPantalla()
+                3 -> UsuarioPantalla()
+                4 -> GestionPlantaPantalla()
                 else -> CalculadoraPantalla()
             }
         }

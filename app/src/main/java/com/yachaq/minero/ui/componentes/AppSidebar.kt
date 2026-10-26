@@ -18,28 +18,42 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yachaq.minero.data.remote.model.LoginResponse // <-- Importa tu modelo remoto
+import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.ui.theme.AmarilloMinero
 import com.yachaq.minero.ui.theme.AmarilloMineroBrillante
 
+data class DrawerItem(
+    val index: Int,
+    val label: String,
+    val icon: ImageVector,
+    val isAdminOnly: Boolean = false
+)
+
 @Composable
 fun AppSidebar(
-    usuario: LoginResponse, // <-- Cambiado de Usuario a LoginResponse
+    usuario: LoginResponse,
     tabSeleccionada: Int,
     onSeleccionarTab: (Int) -> Unit,
     onCerrarSesion: () -> Unit
 ) {
-    // Verificamos si es admin o premium usando los campos de LoginResponse
     val esRolAdmin = usuario.role?.trim()?.equals("admin", ignoreCase = true) == true
     val esPremium = usuario.isPremium || esRolAdmin
+
+    val menuItems = listOf(
+        DrawerItem(0, "Calculadora Minera", Icons.Default.Calculate),
+        DrawerItem(1, "Plantas Mineras", Icons.Default.Factory),
+        DrawerItem(2, "Historial de Operaciones", Icons.Default.History),
+        DrawerItem(3, "Gestión de Usuarios", Icons.Default.SupervisorAccount, isAdminOnly = true),
+        DrawerItem(4, "Gestión de Plantas", Icons.Default.Factory, isAdminOnly = true)
+    )
 
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.width(300.dp)
     ) {
-        // ENCABEZADO PERFIL CON FONDO AMARILLO SI ES PREMIUM / ADMIN
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,7 +95,6 @@ fun AppSidebar(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Etiqueta de ROL
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = AmarilloMinero.copy(alpha = 0.2f),
@@ -96,7 +109,6 @@ fun AppSidebar(
                         )
                     }
 
-                    // Etiqueta de PLAN
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = if (esPremium) AmarilloMineroBrillante else MaterialTheme.colorScheme.surfaceVariant,
@@ -134,59 +146,21 @@ fun AppSidebar(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ===== OPCIONES COMUNES (DISPONIBLES PARA MINEROS Y ADMINS) =====
-        NavigationDrawerItem(
-            label = { Text("Calculadora Minera") },
-            icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
-            selected = tabSeleccionada == 0,
-            onClick = { onSeleccionarTab(0) },
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Plantas Mineras") },
-            icon = { Icon(Icons.Default.Factory, contentDescription = null) },
-            selected = tabSeleccionada == 1,
-            onClick = { onSeleccionarTab(1) },
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Historial de Operaciones") },
-            icon = { Icon(Icons.Default.History, contentDescription = null) },
-            selected = tabSeleccionada == 3,
-            onClick = { onSeleccionarTab(3) },
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        // ===== OPCIONES EXCLUSIVAS PARA ADMINISTRADORES =====
-        if (esRolAdmin) {
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Gestión de Usuarios") },
-                icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = null) },
-                selected = tabSeleccionada == 4,
-                onClick = { onSeleccionarTab(4) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Gestión de Plantas") },
-                icon = { Icon(Icons.Default.Factory, contentDescription = null) },
-                selected = tabSeleccionada == 5,
-                onClick = { onSeleccionarTab(5) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
+        menuItems.forEach { item ->
+            if (!item.isAdminOnly || esRolAdmin) {
+                NavigationDrawerItem(
+                    label = { Text(item.label) },
+                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    selected = tabSeleccionada == item.index,
+                    onClick = { onSeleccionarTab(item.index) },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-        // CERRAR SESIÓN
         NavigationDrawerItem(
             label = { Text("Cerrar Sesión", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
             icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error) },

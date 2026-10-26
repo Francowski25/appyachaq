@@ -21,14 +21,10 @@ export type { CalculatorCalcular$Params as CalculatorCalcular$Params } from './f
 export { calculatorCalcular as calculatorCalcular } from './fn/calculation/calculator-calcular';
 export type { CalculationHistorial$Params as CalculationHistorial$Params } from './fn/calculation/calculation-historial';
 export { calculationHistorial as calculationHistorial } from './fn/calculation/calculation-historial';
-export type { TrackingAdd$Params as TrackingAdd$Params } from './fn/tracking/tracking-add';
-export { trackingAdd as trackingAdd } from './fn/tracking/tracking-add';
-export type { TrackingList$Params as TrackingList$Params } from './fn/tracking/tracking-list';
-export { trackingList as trackingList } from './fn/tracking/tracking-list';
-export type { TrackingStatus$Params as TrackingStatus$Params } from './fn/tracking/tracking-status';
-export { trackingStatus as trackingStatus } from './fn/tracking/tracking-status';
-export type { TrackingDelete$Params as TrackingDelete$Params } from './fn/tracking/tracking-delete';
-export { trackingDelete as trackingDelete } from './fn/tracking/tracking-delete';
+export type { CalculationDelete$Params as CalculationDelete$Params } from './fn/calculation/calculation-delete';
+export { calculationDelete as calculationDelete } from './fn/calculation/calculation-delete';
+export type { CalculationDeleteall$Params as CalculationDeleteall$Params } from './fn/calculation/calculation-deleteall';
+export { calculationDeleteall as calculationDeleteall } from './fn/calculation/calculation-deleteall';
 export type { UserAdd$Params as UserAdd$Params } from './fn/user/user-add';
 export { userAdd as userAdd } from './fn/user/user-add';
 export type { UserList$Params as UserList$Params } from './fn/user/user-list';

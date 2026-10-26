@@ -310,11 +310,39 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
     val totalAPagar = resultado.totalAPagar ?: 0.0
     val tmns = resultado.tmns ?: 0.0
     val tmHumedas = resultado.tmHumedas ?: 0.0
-    val pagoTotal = resultado.pagoTotal ?: 0.0
+    val pagoCu = resultado.pagoCu ?: 0.0
+    val reduccionRefinacion = resultado.reduccionRefinacion ?: 0.0
+    val analisisPorTmns = resultado.analisisPorTmns ?: 0.0
+    val trasladoPorTmns = resultado.trasladoPorTmns ?: 0.0
+    val pagoPorTm = resultado.pagoPorTm ?: 0.0
     val valorNeto = resultado.valorNeto ?: 0.0
     val igv = resultado.igv ?: 0.0
+    val valorTotal = resultado.valorTotal ?: 0.0
     val detraccion = resultado.detraccion ?: 0.0
     val alquilerTotal = resultado.alquilerTotal ?: 0.0
+
+    data class DetalleCalculo(val label: String, val valor: String, val esNegativo: Boolean = false)
+    val listaDetalles = listOf(
+        "1. Valor del Concentrado" to listOf(
+            DetalleCalculo("TM Húmedas", toneladas(tmHumedas)),
+            DetalleCalculo("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", tmns)),
+            DetalleCalculo("Pago por Cobre (Cu)", dolares(pagoCu))
+        ),
+        "2. Reducciones" to listOf(
+            DetalleCalculo("Maquila", dolares(175.0), true),
+            DetalleCalculo("Gastos de Refinación", dolares(reduccionRefinacion), true),
+            DetalleCalculo("Análisis", dolares(analisisPorTmns), true),
+            DetalleCalculo("Traslado Interno", dolares(trasladoPorTmns), true),
+            DetalleCalculo("Pago por TM de Concentrado", dolares(pagoPorTm))
+        ),
+        "3. Liquidación Final" to listOf(
+            DetalleCalculo("Valor Neto", dolares(valorNeto)),
+            DetalleCalculo("IGV (18 %)", dolares(igv)),
+            DetalleCalculo("Valor Total", dolares(valorTotal)),
+            DetalleCalculo("Detracción (10 %)", dolares(detraccion), true),
+            DetalleCalculo("Alquiler de Planta", dolares(alquilerTotal), true)
+        )
+    )
 
     Card(
         colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
@@ -355,19 +383,13 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
 
             HorizontalDivider(color = ColorGrisBorde)
 
-            SeccionTitulo("1. Valor del Concentrado")
-            Fila("TM Húmedas de Concentrado", toneladas(tmHumedas))
-            Fila("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", tmns))
-            Fila("Pago Bruto", dolares(pagoTotal))
-
-            HorizontalDivider(color = ColorGrisBorde)
-
-            SeccionTitulo("2. Liquidación Final")
-            Fila("Valor Neto", dolares(valorNeto))
-            Fila("IGV (18 %)", dolares(igv))
-            Fila("Valor Total", dolares(valorNeto + igv))
-            Fila("Detracción (10 %)", "- " + dolares(detraccion))
-            Fila("Alquiler de Planta", "- " + dolares(alquilerTotal))
+            listaDetalles.forEach { (titulo, detalles) ->
+                SeccionTitulo(titulo)
+                detalles.forEach { detalle ->
+                    Fila(detalle.label, if (detalle.esNegativo) "- ${detalle.valor}" else detalle.valor)
+                }
+                Spacer(Modifier.height(4.dp))
+            }
         }
     }
 }
@@ -402,7 +424,10 @@ private fun Campo(valor: String, etiqueta: String, onCambio: (String) -> Unit) {
 
 @Composable
 private fun Fila(etiqueta: String, valor: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Text(etiqueta, color = TextoGrisSecundario, fontSize = 12.sp)
         Text(valor, color = TextoBlancoSuave, fontWeight = FontWeight.Medium, fontSize = 12.sp)
     }

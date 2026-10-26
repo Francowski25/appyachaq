@@ -25,12 +25,17 @@ object SesionUsuario {
     var usuarioActual: LoginResponse? = null
         private set
 
+    private var contadorConsultas: Int = 0
+    private const val LIMITE_GRATUITO = 10
+
     fun iniciarSesion(usuario: LoginResponse) {
         usuarioActual = usuario
+        contadorConsultas = 0
     }
 
     fun cerrarSesion() {
         usuarioActual = null
+        contadorConsultas = 0
     }
 
     fun esAdmin(): Boolean {
@@ -44,5 +49,20 @@ object SesionUsuario {
 
     fun alternarPlanPremiumSimulado() {
         usuarioActual = usuarioActual?.copy(isPremium = !(usuarioActual?.isPremium ?: false))
+    }
+
+    fun puedeRealizarConsulta(): Boolean {
+        if (esPremium()) return true
+        return contadorConsultas < LIMITE_GRATUITO
+    }
+
+    fun registrarConsulta() {
+        if (!esPremium()) {
+            contadorConsultas++
+        }
+    }
+
+    fun consultasRestantes(): Int {
+        return if (esPremium()) 999 else (LIMITE_GRATUITO - contadorConsultas).coerceAtLeast(0)
     }
 }

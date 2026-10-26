@@ -19,7 +19,7 @@ fun DashboardMineroPantalla(
     val tituloActual = when (tabSeleccionada) {
         0 -> "Calculadora Minera"
         1 -> "Plantas Mineras"
-        3 -> "Historial de Operaciones"
+        2 -> "Historial de Operaciones"
         else -> "Minero Yachaq"
     }
 
@@ -38,7 +38,7 @@ fun DashboardMineroPantalla(
             when (tabSeleccionada) {
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
-                3 -> HistorialPantalla()
+                2 -> HistorialPantalla()
                 else -> CalculadoraPantalla()
             }
         }

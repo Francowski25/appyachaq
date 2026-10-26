@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.RetrofitClient
@@ -24,7 +27,6 @@ fun CalculadoraPantalla() {
     val scope = rememberCoroutineScope()
     val usuarioActual = SesionUsuario.usuarioActual
 
-    // ---------- Plantas desde el backend ----------
     var plantas by remember { mutableStateOf<List<ResponsePlant>>(emptyList()) }
     var cargandoPlantas by remember { mutableStateOf(true) }
     var errorPlantas by remember { mutableStateOf<String?>(null) }
@@ -32,6 +34,19 @@ fun CalculadoraPantalla() {
 
     var plantaConfirmada by remember { mutableStateOf<ResponsePlant?>(null) }
     var esConfirmado by remember { mutableStateOf(false) }
+
+    val materiales = listOf("Cobre (Cu)", "Oro (Au)", "Plata (Ag)")
+    var materialSeleccionado by remember { mutableStateOf(materiales[0]) }
+
+    var tonelaje by remember { mutableStateOf("") }
+    var ley by remember { mutableStateOf("") }
+    var precio by remember { mutableStateOf("") }
+
+    var error by remember { mutableStateOf<String?>(null) }
+    var resultado by remember { mutableStateOf<ResponseCalculo?>(null) }
+    var calculando by remember { mutableStateOf(false) }
+
+    var mostrarDialogoPremium by remember { mutableStateOf(false) }
 
     LaunchedEffect(recargarPlantas) {
         cargandoPlantas = true
@@ -50,32 +65,23 @@ fun CalculadoraPantalla() {
         }
     }
 
-    // ---------- Formulario ----------
-    val materiales = listOf("Cobre (Cu)", "Oro (Au)", "Plata (Ag)")
-    var materialSeleccionado by remember { mutableStateOf(materiales[0]) }
-
-    var tonelaje by remember { mutableStateOf("") }
-    var ley by remember { mutableStateOf("") }
-    var precio by remember { mutableStateOf("") }
-
-    var error by remember { mutableStateOf<String?>(null) }
-    var resultado by remember { mutableStateOf<ResponseCalculo?>(null) }
-    var calculando by remember { mutableStateOf(false) }
-
     fun calcular() {
+        if (!SesionUsuario.puedeRealizarConsulta()) {
+            mostrarDialogoPremium = true
+            return
+        }
+
         val t = tonelaje.toDoubleOrNull()
         val l = ley.toDoubleOrNull()
         val p = precio.toDoubleOrNull()
         val idPlant = plantaConfirmada?.idPlant
-        val idUser = usuarioActual?.idUser // AJUSTAR: nombre real del campo en LoginResponse
+        val idUser = usuarioActual?.idUser
 
         when {
             idUser.isNullOrBlank() -> error = "Sesión no válida. Vuelva a iniciar sesión."
-            !esConfirmado ->
-                error = "Por favor seleccione y confirme una planta procesadora primero."
+            !esConfirmado -> error = "Por favor seleccione y confirme una planta procesadora primero."
             idPlant.isNullOrBlank() -> error = "La planta seleccionada no es válida."
-            t == null || l == null || p == null ->
-                error = "Por favor complete todos los campos con números válidos."
+            t == null || l == null || p == null -> error = "Por favor complete todos los campos con números válidos."
             t <= 0 || l <= 0 || p <= 0 -> error = "Los valores deben ser mayores que cero."
             else -> scope.launch {
                 calculando = true
@@ -95,9 +101,9 @@ fun CalculadoraPantalla() {
                     val body = resp.body()
                     if (resp.isSuccessful && body?.type == "SUCCESS") {
                         resultado = body
+                        SesionUsuario.registrarConsulta()
                     } else {
-                        error = body?.listMessage?.firstOrNull()
-                            ?: "Error del servidor (${resp.code()})"
+                        error = body?.listMessage?.firstOrNull() ?: "Error del servidor (${resp.code()})"
                     }
                 } catch (e: Exception) {
                     error = "No se pudo conectar: ${e.message}"
@@ -108,7 +114,6 @@ fun CalculadoraPantalla() {
         }
     }
 
-    // ---------- UI ----------
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -123,46 +128,32 @@ fun CalculadoraPantalla() {
             fontWeight = FontWeight.Black,
             letterSpacing = 1.2.sp
         )
-        Text(
-            text = "Estimación técnica y económica de concentrado minero",
-            color = TextoGrisSecundario,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal
-        )
+
+        if (usuarioActual?.role == "minero" && !SesionUsuario.esPremium()) {
+            Text(
+                text = "Consultas gratuitas restantes: ${SesionUsuario.consultasRestantes()}",
+                color = TextoGrisSecundario,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
 
         Spacer(Modifier.height(20.dp))
 
         when {
-            cargandoPlantas -> CircularProgressIndicator(
-                color = AmarilloMineroBrillante,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(28.dp)
-            )
+            cargandoPlantas -> CircularProgressIndicator(color = AmarilloMineroBrillante, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
             errorPlantas != null -> {
                 Text(errorPlantas.orEmpty(), color = ErrorRojo, fontSize = 12.sp)
-                TextButton(onClick = { recargarPlantas++ }) {
-                    Text("REINTENTAR", color = AmarilloMineroBrillante)
-                }
+                TextButton(onClick = { recargarPlantas++ }) { Text("REINTENTAR", color = AmarilloMineroBrillante) }
             }
-            plantas.isEmpty() -> Text(
-                "No hay plantas registradas.",
-                color = TextoGrisSecundario,
-                fontSize = 13.sp
-            )
+            plantas.isEmpty() -> Text("No hay plantas registradas.", color = TextoGrisSecundario, fontSize = 13.sp)
             else -> SeccionPlantaCard(
                 listaPlantas = plantas,
                 esConfirmado = esConfirmado,
                 plantaConfirmada = plantaConfirmada,
-                onConfirmar = { planta ->
-                    plantaConfirmada = planta
-                    esConfirmado = true
-                    error = null
-                },
-                onCambiar = {
-                    esConfirmado = false
-                    plantaConfirmada = null
-                    resultado = null
-                }
+                onConfirmar = { planta -> plantaConfirmada = planta; esConfirmado = true; error = null },
+                onCambiar = { esConfirmado = false; plantaConfirmada = null; resultado = null }
             )
         }
 
@@ -176,11 +167,7 @@ fun CalculadoraPantalla() {
             onMaterialSeleccionado = { material ->
                 if (materialSeleccionado != material) {
                     materialSeleccionado = material
-                    tonelaje = ""
-                    ley = ""
-                    precio = ""
-                    resultado = null
-                    error = null
+                    tonelaje = ""; ley = ""; precio = ""; resultado = null; error = null
                 }
             }
         )
@@ -203,28 +190,14 @@ fun CalculadoraPantalla() {
         Button(
             onClick = { calcular() },
             enabled = !calculando,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AmarilloMineroBrillante,
-                contentColor = FondoNegroAbsoluto
-            ),
+            colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto),
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
+            modifier = Modifier.fillMaxWidth().height(52.dp)
         ) {
             if (calculando) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = FondoNegroAbsoluto,
-                    strokeWidth = 2.dp
-                )
+                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = FondoNegroAbsoluto, strokeWidth = 2.dp)
             } else {
-                Text(
-                    "CALCULAR LIQUIDACIÓN",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 15.sp,
-                    letterSpacing = 1.2.sp
-                )
+                Text("CALCULAR LIQUIDACIÓN", fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.2.sp)
             }
         }
 
@@ -238,6 +211,29 @@ fun CalculadoraPantalla() {
             "Los parámetros adicionales de liquidación son administrados centralmente.",
             color = TextoGrisSecundario,
             fontSize = 11.sp
+        )
+    }
+
+    if (mostrarDialogoPremium) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoPremium = false },
+            icon = { Icon(Icons.Default.Star, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(40.dp)) },
+            title = { Text("Límite Gratuito Alcanzado", fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = TextoBlancoSuave) },
+            text = { Text("Has alcanzado el límite de 10 consultas gratuitas. Actualiza a Plan Premium para continuar realizando cálculos ilimitados.", textAlign = TextAlign.Center, fontSize = 14.sp, color = TextoGrisSecundario) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        SesionUsuario.alternarPlanPremiumSimulado()
+                        mostrarDialogoPremium = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto)
+                ) { Text("ACTIVAR PREMIUM (SIMULACIÓN)", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoPremium = false }) { Text("CERRAR", color = TextoGrisSecundario) }
+            },
+            containerColor = FondoNegroSecundario,
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
