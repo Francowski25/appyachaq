@@ -7,9 +7,7 @@ import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
-import com.yachaq.minero.ui.modulos.SeguimientoPantalla
 import com.yachaq.minero.ui.modulos.HistorialPantalla
-import com.yachaq.minero.ui.modulos.SoportePantalla
 
 @Composable
 fun DashboardMineroPantalla(
@@ -18,8 +16,15 @@ fun DashboardMineroPantalla(
 ) {
     var tabSeleccionada by remember { mutableIntStateOf(0) }
 
+    val tituloActual = when (tabSeleccionada) {
+        0 -> "Calculadora Minera"
+        1 -> "Plantas Mineras"
+        3 -> "Historial de Operaciones"
+        else -> "Minero Yachaq"
+    }
+
     AppTopBar(
-        titulo = "Minero Yachaq",
+        titulo = tituloActual,
         usuario = usuario,
         tabSeleccionada = tabSeleccionada,
         onSeleccionarTab = { tabSeleccionada = it },
@@ -33,9 +38,7 @@ fun DashboardMineroPantalla(
             when (tabSeleccionada) {
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
-                2 -> SeguimientoPantalla()
                 3 -> HistorialPantalla()
-                7 -> SoportePantalla()
                 else -> CalculadoraPantalla()
             }
         }

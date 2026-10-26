@@ -34,8 +34,13 @@ fun AppTopBar(
 
     val esAdmin = SesionUsuario.esAdmin()
 
-    // Estado local para forzar la actualización visual inmediata al cambiar de plan simulado
-    var esPremiumLocal by remember { mutableStateOf(usuario.isPremium) }
+    // Estado local sincronizado con el usuario y SesionUsuario
+    var esPremiumLocal by remember(usuario.isPremium) { mutableStateOf(usuario.isPremium) }
+
+    // Actualizar estado local si cambia la sesión globalmente
+    LaunchedEffect(usuario.isPremium) {
+        esPremiumLocal = usuario.isPremium
+    }
 
     // Identidad visual Premium (Admin o Usuario Premium)
     val esPremiumOAdmin = esPremiumLocal || esAdmin
@@ -80,13 +85,13 @@ fun AppTopBar(
                             Surface(
                                 onClick = {
                                     SesionUsuario.alternarPlanPremiumSimulado()
-                                    esPremiumLocal = SesionUsuario.usuarioActual?.isPremium ?: false
+                                    esPremiumLocal = SesionUsuario.usuarioActual?.isPremium ?: !esPremiumLocal
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 color = if (esPremiumLocal) AmarilloMineroBrillante.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
                                 border = BorderStroke(
                                     1.dp,
-                                    if (esPremiumLocal) AmarilloMineroBrillante else ColorGrisBorde
+                                    if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                                 ),
                                 modifier = Modifier.padding(end = 12.dp)
                             ) {
@@ -98,14 +103,14 @@ fun AppTopBar(
                                     Icon(
                                         imageVector = if (esPremiumLocal) Icons.Default.Star else Icons.Default.Lock,
                                         contentDescription = null,
-                                        tint = if (esPremiumLocal) AmarilloMineroBrillante else TextoGrisSecundario,
+                                        tint = if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = if (esPremiumLocal) "PREMIUM" else "FREE",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Black,
-                                        color = if (esPremiumLocal) AmarilloMineroBrillante else TextoBlancoSuave
+                                        color = if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }

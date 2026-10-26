@@ -10,9 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Factory
-import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SupervisorAccount
@@ -154,26 +152,10 @@ fun AppSidebar(
         )
 
         NavigationDrawerItem(
-            label = { Text("Seguimiento de Carga") },
-            icon = { Icon(Icons.Default.LocalShipping, contentDescription = null) },
-            selected = tabSeleccionada == 2,
-            onClick = { onSeleccionarTab(2) },
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        NavigationDrawerItem(
             label = { Text("Historial de Operaciones") },
             icon = { Icon(Icons.Default.History, contentDescription = null) },
             selected = tabSeleccionada == 3,
             onClick = { onSeleccionarTab(3) },
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Soporte & Asistencia") },
-            icon = { Icon(Icons.Default.HeadsetMic, contentDescription = null) },
-            selected = tabSeleccionada == 7,
-            onClick = { onSeleccionarTab(7) },
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
@@ -197,14 +179,6 @@ fun AppSidebar(
                 icon = { Icon(Icons.Default.Factory, contentDescription = null) },
                 selected = tabSeleccionada == 5,
                 onClick = { onSeleccionarTab(5) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Gestión de Calculadora") },
-                icon = { Icon(Icons.Default.Calculate, contentDescription = null) },
-                selected = tabSeleccionada == 6,
-                onClick = { onSeleccionarTab(6) },
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
