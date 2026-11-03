@@ -14,6 +14,14 @@ data class ResponseCalculo(
     val precioAjustadoCu: Double? = null,
     val pagoCu: Double? = null,
 
+    val contenidoPagableAg: Double? = null,
+    val precioAjustadoAg: Double? = null,
+    val pagoAg: Double? = null,
+
+    val contenidoPagableAu: Double? = null,
+    val precioAjustadoAu: Double? = null,
+    val pagoAu: Double? = null,
+
     val reduccionRefinacion: Double? = null,
     val analisisPorTmns: Double? = null,
     val trasladoPorTmns: Double? = null,
