@@ -33,3 +33,7 @@ export type { UserUpdate$Params as UserUpdate$Params } from './fn/user/user-upda
 export { userUpdate as userUpdate } from './fn/user/user-update';
 export type { UserDelete$Params as UserDelete$Params } from './fn/user/user-delete';
 export { userDelete as userDelete } from './fn/user/user-delete';
+export type { MarketpriceList$Params as MarketpriceList$Params } from './fn/market-price/marketprice-list';
+export { marketpriceList as marketpriceList } from './fn/market-price/marketprice-list';
+export type { MarketpriceUpdate$Params as MarketpriceUpdate$Params } from './fn/market-price/marketprice-update';
+export { marketpriceUpdate as marketpriceUpdate } from './fn/market-price/marketprice-update';

@@ -26,4 +26,4 @@ export function calculationDeleteall(http: HttpClient, rootUrl: string, params?:
   );
 }
 
-calculationDeleteall.PATH = '/calculation/deleteAll/f2d5c791-961d-4843-aee3-3cd539133850';
+calculationDeleteall.PATH = '/calculation/deleteAll/f096df97-d0e3-11f1-9282-00ffc07f059e';

@@ -1,14 +1,5 @@
 package com.yachaq.minero.data.remote.model
 
-data class RequestCalculo(
-    val idUser: String,
-    val idPlant: String,
-    val material: String,
-    val tonelaje: Double,
-    val ley: Double,
-    val precio: Double
-)
-
 data class ResponseCalculo(
     val idCalculation: String? = null,
     val material: String? = null,

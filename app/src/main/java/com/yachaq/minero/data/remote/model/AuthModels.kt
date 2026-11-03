@@ -17,6 +17,7 @@ data class LoginResponse(
     val name: String?,
     val role: String?,
     val isPremium: Boolean = false,
+    val token: String? = null,
     val listMessage: List<String>? = null,
     val type: String? = null
 )

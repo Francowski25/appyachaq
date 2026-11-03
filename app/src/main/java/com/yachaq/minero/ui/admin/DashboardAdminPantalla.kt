@@ -10,6 +10,7 @@ import com.yachaq.minero.ui.modulos.PlantaPantalla
 import com.yachaq.minero.ui.modulos.HistorialPantalla
 import com.yachaq.minero.ui.modulos.UsuarioPantalla
 import com.yachaq.minero.ui.modulos.GestionPlantaPantalla
+import com.yachaq.minero.ui.modulos.PrecioMercadoPantalla
 
 @Composable
 fun DashboardAdminPantalla(
@@ -24,6 +25,7 @@ fun DashboardAdminPantalla(
         2 -> "Historial de Operaciones"
         3 -> "Gestión de Usuarios"
         4 -> "Gestión de Plantas"
+        5 -> "Precios del Mercado"
         else -> "Minero Yachaq"
     }
 
@@ -34,17 +36,14 @@ fun DashboardAdminPantalla(
         onSeleccionarTab = { tabSeleccionada = it },
         onCerrarSesion = onCerrarSesion
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
+        Box(modifier = Modifier.padding(innerPadding)) {
             when (tabSeleccionada) {
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
                 2 -> HistorialPantalla()
                 3 -> UsuarioPantalla()
                 4 -> GestionPlantaPantalla()
+                5 -> PrecioMercadoPantalla()
                 else -> CalculadoraPantalla()
             }
         }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.History
@@ -47,7 +48,8 @@ fun AppSidebar(
         DrawerItem(1, "Plantas Mineras", Icons.Default.Factory),
         DrawerItem(2, "Historial de Operaciones", Icons.Default.History),
         DrawerItem(3, "Gestión de Usuarios", Icons.Default.SupervisorAccount, isAdminOnly = true),
-        DrawerItem(4, "Gestión de Plantas", Icons.Default.Factory, isAdminOnly = true)
+        DrawerItem(4, "Gestión de Plantas", Icons.Default.Factory, isAdminOnly = true),
+        DrawerItem(5, "Precios del Mercado", Icons.Default.AttachMoney, isAdminOnly = true)
     )
 
     ModalDrawerSheet(
