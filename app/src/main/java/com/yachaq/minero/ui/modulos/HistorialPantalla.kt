@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -33,6 +34,53 @@ private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
 
 @Composable
 fun HistorialPantalla() {
+    if (SesionUsuario.esPremium()) HistorialContenido() else HistorialBloqueado()
+}
+
+@Composable
+private fun HistorialBloqueado() {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Lock,
+                contentDescription = null,
+                tint = AmarilloMineroBrillante,
+                modifier = Modifier.size(48.dp)
+            )
+            Text(
+                "Historial exclusivo",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                color = TextoBlancoSuave
+            )
+            Text(
+                "El historial de liquidaciones está disponible para administradores y usuarios Premium.",
+                fontSize = 12.sp,
+                color = TextoGrisSecundario,
+                textAlign = TextAlign.Center
+            )
+            Button(
+                onClick = { SesionUsuario.alternarPlanPremiumSimulado() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AmarilloMineroBrillante,
+                    contentColor = FondoNegroAbsoluto
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("ACTIVAR PREMIUM (SIMULACIÓN)", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistorialContenido() {
     val idUser = SesionUsuario.usuarioActual?.idUser
     val scope = rememberCoroutineScope()
 
@@ -41,12 +89,10 @@ fun HistorialPantalla() {
     var error by remember { mutableStateOf<String?>(null) }
     var recargar by remember { mutableIntStateOf(0) }
 
-    // Estados para la eliminación GLOBAL
     var mostrarDialogoEliminarGlobal by remember { mutableStateOf(false) }
     var eliminandoGlobal by remember { mutableStateOf(false) }
     var mensajeErrorGlobal by remember { mutableStateOf<String?>(null) }
 
-    // Estados para la eliminación INDIVIDUAL
     var idParaEliminar by remember { mutableStateOf<String?>(null) }
     var eliminandoIndividual by remember { mutableStateOf(false) }
     var mensajeErrorIndividual by remember { mutableStateOf<String?>(null) }
@@ -98,7 +144,6 @@ fun HistorialPantalla() {
 
             Spacer(Modifier.height(16.dp))
 
-            // BARRA DE BÚSQUEDA Y BOTÓN DE ELIMINAR GLOBAL
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -176,7 +221,7 @@ fun HistorialPantalla() {
                         TarjetaHistorialCard(
                             registro = registro,
                             onClickDetalle = { detalle = registro },
-                            onEliminar = { idParaEliminar = registro.idCalculation } // <-- NUEVO
+                            onEliminar = { idParaEliminar = registro.idCalculation }
                         )
                     }
                 }
@@ -184,7 +229,6 @@ fun HistorialPantalla() {
         }
     }
 
-    // DIÁLOGO PARA ELIMINAR GLOBAL
     if (mostrarDialogoEliminarGlobal) {
         AlertDialog(
             onDismissRequest = { if (!eliminandoGlobal) mostrarDialogoEliminarGlobal = false },
@@ -235,7 +279,6 @@ fun HistorialPantalla() {
         )
     }
 
-    // DIÁLOGO PARA ELIMINAR INDIVIDUAL
     if (idParaEliminar != null) {
         AlertDialog(
             onDismissRequest = { if (!eliminandoIndividual) idParaEliminar = null },
@@ -286,7 +329,6 @@ fun HistorialPantalla() {
         )
     }
 
-    // DIÁLOGO DE DETALLE (Se mantiene igual)
     detalle?.let { reg ->
         AlertDialog(
             onDismissRequest = { detalle = null },
@@ -305,7 +347,11 @@ fun HistorialPantalla() {
                 }
             },
             confirmButton = {
-                Button(onClick = { detalle = null }, colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto), shape = RoundedCornerShape(12.dp)) {
+                Button(
+                    onClick = { detalle = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Text("Cerrar", fontWeight = FontWeight.Bold)
                 }
             }
@@ -313,12 +359,11 @@ fun HistorialPantalla() {
     }
 }
 
-// TARJETA ACTUALIZADA CON EL BOTÓN DE ELIMINAR
 @Composable
 fun TarjetaHistorialCard(
     registro: ResponseHistorial,
     onClickDetalle: () -> Unit = {},
-    onEliminar: () -> Unit = {} // <-- NUEVO CALLBACK
+    onEliminar: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
@@ -374,7 +419,6 @@ fun TarjetaHistorialCard(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // BOTÓN DE ELIMINAR INDIVIDUAL (Papelera)
                         IconButton(
                             onClick = onEliminar,
                             modifier = Modifier.size(36.dp)

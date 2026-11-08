@@ -311,6 +311,8 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
     val tmns = resultado.tmns ?: 0.0
     val tmHumedas = resultado.tmHumedas ?: 0.0
     val pagoCu = resultado.pagoCu ?: 0.0
+    val pagoAg = resultado.pagoAg ?: 0.0
+    val pagoAu = resultado.pagoAu ?: 0.0
     val reduccionRefinacion = resultado.reduccionRefinacion ?: 0.0
     val analisisPorTmns = resultado.analisisPorTmns ?: 0.0
     val trasladoPorTmns = resultado.trasladoPorTmns ?: 0.0
@@ -321,15 +323,26 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
     val detraccion = resultado.detraccion ?: 0.0
     val alquilerTotal = resultado.alquilerTotal ?: 0.0
 
+    val hayCu = (resultado.contenidoPagableCu ?: 0.0) > 0
+    val hayAg = (resultado.contenidoPagableAg ?: 0.0) > 0
+    val hayAu = (resultado.contenidoPagableAu ?: 0.0) > 0
+
+    val maquila = pagoCu + pagoAg + pagoAu - reduccionRefinacion - analisisPorTmns - trasladoPorTmns - pagoPorTm
+
     data class DetalleCalculo(val label: String, val valor: String, val esNegativo: Boolean = false)
+
+    val concentrado = buildList<DetalleCalculo> {
+        add(DetalleCalculo("TM Húmedas", toneladas(tmHumedas)))
+        add(DetalleCalculo("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", tmns)))
+        if (hayCu) add(DetalleCalculo("Pago por Cobre (Cu)", dolares(pagoCu)))
+        if (hayAg) add(DetalleCalculo("Pago por Plata (Ag)", dolares(pagoAg)))
+        if (hayAu) add(DetalleCalculo("Pago por Oro (Au)", dolares(pagoAu)))
+    }
+
     val listaDetalles = listOf(
-        "1. Valor del Concentrado" to listOf(
-            DetalleCalculo("TM Húmedas", toneladas(tmHumedas)),
-            DetalleCalculo("TM Secas Netas (TMNS)", String.format(Locale.US, "%.2f TMNS", tmns)),
-            DetalleCalculo("Pago por Cobre (Cu)", dolares(pagoCu))
-        ),
+        "1. Valor del Concentrado" to concentrado,
         "2. Reducciones" to listOf(
-            DetalleCalculo("Maquila", dolares(175.0), true),
+            DetalleCalculo("Maquila", dolares(maquila), true),
             DetalleCalculo("Gastos de Refinación", dolares(reduccionRefinacion), true),
             DetalleCalculo("Análisis", dolares(analisisPorTmns), true),
             DetalleCalculo("Traslado Interno", dolares(trasladoPorTmns), true),

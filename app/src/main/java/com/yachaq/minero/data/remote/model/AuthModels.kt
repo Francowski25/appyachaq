@@ -1,5 +1,9 @@
 package com.yachaq.minero.data.remote.model
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 data class AuthLoginRequest(
     val email: String,
     val password: String
@@ -23,7 +27,7 @@ data class LoginResponse(
 )
 
 object SesionUsuario {
-    var usuarioActual: LoginResponse? = null
+    var usuarioActual by mutableStateOf<LoginResponse?>(null)
         private set
 
     private var contadorConsultas: Int = 0

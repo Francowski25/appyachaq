@@ -10,6 +10,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -130,12 +134,17 @@ fun PreciosMercadoCard(
                     fontSize = 11.sp
                 )
             }
-            Box(
-                modifier = Modifier
-                    .size(9.dp)
-                    .clip(CircleShape)
-                    .background(ColorVivo)
-            )
+            val cargando = state is PreciosUiState.Loading
+            IconButton(
+                onClick = { viewModel.cargar() },
+                enabled = !cargando
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Actualizar precios",
+                    tint = AmarilloMineroBrillante.copy(alpha = if (cargando) 0.35f else 1f)
+                )
+            }
         }
 
         Spacer(Modifier.height(16.dp))

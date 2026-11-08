@@ -152,7 +152,7 @@ fun CalculadoraPantalla() {
                             idPlant = idPlant,
                             material = "Cobre + Plata + Oro",
                             tonelaje = t,
-                            ley = lCu,
+                            leyCu = lCu,
                             leyAg = lAg,
                             leyAu = lAu
                         )

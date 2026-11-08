@@ -22,7 +22,8 @@ data class RequestCalculo(
     @SerializedName("idPlant")  val idPlant: String,
     @SerializedName("material") val material: String,
     @SerializedName("tonelaje") val tonelaje: Double,
-    @SerializedName("ley")      val ley: Double,
+    @SerializedName("leyCu")    val leyCu: Double,
     @SerializedName("leyAg")    val leyAg: Double,
-    @SerializedName("leyAu")    val leyAu: Double
+    @SerializedName("leyAu")    val leyAu: Double,
+    @SerializedName("adelanto") val adelanto: Double? = null
 )
