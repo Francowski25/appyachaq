@@ -8,4 +8,6 @@ export type { MarketpriceUpdateRequest } from './models/marketprice-update-reque
 export type { PlantAddRequest } from './models/plant-add-request';
 export type { PlantUpdateRequest } from './models/plant-update-request';
 export type { UserAddRequest } from './models/user-add-request';
+export type { UsertermsGuardarRequest } from './models/userterms-guardar-request';
+export type { UsertermsRestablecerRequest } from './models/userterms-restablecer-request';
 export type { UserUpdateRequest } from './models/user-update-request';

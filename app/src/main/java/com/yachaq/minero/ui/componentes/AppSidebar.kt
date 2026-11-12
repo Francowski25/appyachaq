@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SupervisorAccount
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,7 +31,8 @@ data class DrawerItem(
     val index: Int,
     val label: String,
     val icon: ImageVector,
-    val isAdminOnly: Boolean = false
+    val isAdminOnly: Boolean = false,
+    val isMineroOnly: Boolean = false // NUEVO PARÁMETRO
 )
 
 @Composable
@@ -46,6 +48,8 @@ fun AppSidebar(
     val menuItems = listOf(
         DrawerItem(0, "Calculadora Minera", Icons.Default.Calculate),
         DrawerItem(1, "Plantas Mineras", Icons.Default.Factory),
+        // Marcamos esta opción como exclusiva para mineros
+        DrawerItem(6, "Mi Planta y Términos", Icons.Default.Tune, isMineroOnly = true),
         DrawerItem(2, "Historial de Operaciones", Icons.Default.History),
         DrawerItem(3, "Gestión de Usuarios", Icons.Default.SupervisorAccount, isAdminOnly = true),
         DrawerItem(4, "Gestión de Plantas", Icons.Default.Factory, isAdminOnly = true),
@@ -149,7 +153,10 @@ fun AppSidebar(
         Spacer(modifier = Modifier.height(12.dp))
 
         menuItems.forEach { item ->
-            if (!item.isAdminOnly || esRolAdmin) {
+            // Evaluamos si el item se debe mostrar según el rol
+            val mostrarItem = (!item.isAdminOnly || esRolAdmin) && (!item.isMineroOnly || !esRolAdmin)
+
+            if (mostrarItem) {
                 NavigationDrawerItem(
                     label = { Text(item.label) },
                     icon = { Icon(item.icon, contentDescription = item.label) },

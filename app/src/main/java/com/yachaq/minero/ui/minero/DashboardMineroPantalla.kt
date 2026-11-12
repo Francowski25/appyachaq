@@ -8,6 +8,7 @@ import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
 import com.yachaq.minero.ui.modulos.HistorialPantalla
+import com.yachaq.minero.ui.modulos.MisTerminosPantalla // <-- NUEVO IMPORT
 
 @Composable
 fun DashboardMineroPantalla(
@@ -20,6 +21,7 @@ fun DashboardMineroPantalla(
         0 -> "Calculadora Minera"
         1 -> "Plantas Mineras"
         2 -> "Historial de Operaciones"
+        6 -> "Mi Planta y Términos" // <-- NUEVO TÍTULO
         else -> "Minero Yachaq"
     }
 
@@ -39,6 +41,7 @@ fun DashboardMineroPantalla(
                 0 -> CalculadoraPantalla()
                 1 -> PlantaPantalla()
                 2 -> HistorialPantalla()
+                6 -> MisTerminosPantalla(idUser = usuario.idUser ?: "")
                 else -> CalculadoraPantalla()
             }
         }

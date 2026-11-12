@@ -23,7 +23,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.RequestTerms
+import com.yachaq.minero.data.remote.model.RequestUserTerms
 import com.yachaq.minero.data.remote.model.ResponseTerms
+import com.yachaq.minero.data.remote.model.ResponseUserTerms
 import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -50,7 +52,18 @@ private data class TerminosUi(
     val igvPorcentaje: Double = 0.0,
     val detraccionPorcentaje: Double = 0.0
 ) {
-    fun toRequest() = RequestTerms(
+    fun toRequestTerms() = RequestTerms(
+        factorConcentrado = factorConcentrado, humedad = humedad, merma = merma,
+        leyConcentradoCu = leyConcentradoCu, leyConcentradoAg = leyConcentradoAg, leyConcentradoAu = leyConcentradoAu,
+        pagableCu = pagableCu, deduccionCu = deduccionCu, gastosRefCu = gastosRefCu, proteccionCu = proteccionCu,
+        pagableAg = pagableAg, deduccionAg = deduccionAg, gastosRefAg = gastosRefAg,
+        pagableAu = pagableAu, deduccionAu = deduccionAu, gastosRefAu = gastosRefAu,
+        maquila = maquila, analisis = analisis, trasladoInterno = trasladoInterno,
+        igvPorcentaje = igvPorcentaje, detraccionPorcentaje = detraccionPorcentaje
+    )
+
+    fun toRequestUserTerms(idUser: String, idPlant: String) = RequestUserTerms(
+        idUser = idUser, idPlant = idPlant,
         factorConcentrado = factorConcentrado, humedad = humedad, merma = merma,
         leyConcentradoCu = leyConcentradoCu, leyConcentradoAg = leyConcentradoAg, leyConcentradoAu = leyConcentradoAu,
         pagableCu = pagableCu, deduccionCu = deduccionCu, gastosRefCu = gastosRefCu, proteccionCu = proteccionCu,
@@ -71,10 +84,22 @@ private fun ResponseTerms.toUi() = TerminosUi(
     igvPorcentaje = igvPorcentaje ?: 0.0, detraccionPorcentaje = detraccionPorcentaje ?: 0.0
 )
 
+private fun ResponseUserTerms.toUi() = TerminosUi(
+    factorConcentrado = factorConcentrado ?: 0.0, humedad = humedad ?: 0.0, merma = merma ?: 0.0,
+    leyConcentradoCu = leyConcentradoCu ?: 0.0, leyConcentradoAg = leyConcentradoAg ?: 0.0, leyConcentradoAu = leyConcentradoAu ?: 0.0,
+    pagableCu = pagableCu ?: 0.0, deduccionCu = deduccionCu ?: 0.0, gastosRefCu = gastosRefCu ?: 0.0, proteccionCu = proteccionCu ?: 0.0,
+    pagableAg = pagableAg ?: 0.0, deduccionAg = deduccionAg ?: 0.0, gastosRefAg = gastosRefAg ?: 0.0,
+    pagableAu = pagableAu ?: 0.0, deduccionAu = deduccionAu ?: 0.0, gastosRefAu = gastosRefAu ?: 0.0,
+    maquila = maquila ?: 0.0, analisis = analisis ?: 0.0, trasladoInterno = trasladoInterno ?: 0.0,
+    igvPorcentaje = igvPorcentaje ?: 0.0, detraccionPorcentaje = detraccionPorcentaje ?: 0.0
+)
+
 @Composable
 fun TerminosPlanta(
     idPlant: String,
     nombrePlanta: String,
+    idUser: String? = null,
+    esAdmin: Boolean = true,
     onDismiss: () -> Unit
 ) {
     var terminos by remember { mutableStateOf<TerminosUi?>(null) }
@@ -86,12 +111,31 @@ fun TerminosPlanta(
         cargando = true
         errorCarga = null
         try {
-            val resp = RetrofitClient.termsApi.obtenerTerminos(idPlant)
-            val body = resp.body()
-            if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
-                terminos = body.toUi()
+            if (esAdmin) {
+                val resp = RetrofitClient.termsApi.obtenerTerminos(idPlant)
+                val body = resp.body()
+                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
+                    terminos = body.toUi()
+                } else {
+                    errorCarga = body?.listMessage?.firstOrNull() ?: "Error al cargar términos (${resp.code()})"
+                }
             } else {
-                errorCarga = body?.listMessage?.firstOrNull() ?: "Error al cargar términos (${resp.code()})"
+                if (idUser == null) {
+                    errorCarga = "Error: ID de usuario no proporcionado."
+                    return@LaunchedEffect
+                }
+                val resp = RetrofitClient.userTermsApi.listar(idUser)
+                if (resp.isSuccessful) {
+                    val lista = resp.body().orEmpty()
+                    val terminoPlanta = lista.find { it.idPlant == idPlant }
+                    if (terminoPlanta != null) {
+                        terminos = terminoPlanta.toUi()
+                    } else {
+                        errorCarga = "No se encontraron términos para esta planta."
+                    }
+                } else {
+                    errorCarga = "Error al cargar términos del usuario (${resp.code()})"
+                }
             }
         } catch (e: Exception) {
             errorCarga = "No se pudo conectar: ${e.message}"
@@ -100,16 +144,28 @@ fun TerminosPlanta(
         }
     }
 
-    // Envía TODOS los términos con los cambios de una sección. Devuelve mensaje de error o null si salió bien.
     suspend fun guardar(nuevo: TerminosUi): String? {
         return try {
-            val resp = RetrofitClient.termsApi.actualizarTerminos(idPlant, nuevo.toRequest())
-            val body = resp.body()
-            if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
-                terminos = body.toUi()
-                null
+            if (esAdmin) {
+                val resp = RetrofitClient.termsApi.actualizarTerminos(idPlant, nuevo.toRequestTerms())
+                val body = resp.body()
+                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
+                    terminos = body.toUi()
+                    null
+                } else {
+                    body?.listMessage?.firstOrNull() ?: "Error del servidor (${resp.code()})"
+                }
             } else {
-                body?.listMessage?.firstOrNull() ?: "Error del servidor (${resp.code()})"
+                if (idUser == null) return "Error: ID de usuario no proporcionado."
+                val req = nuevo.toRequestUserTerms(idUser, idPlant)
+                val resp = RetrofitClient.userTermsApi.guardar(req)
+                val body = resp.body()
+                if (resp.isSuccessful && (body?.type == null || body.type == "SUCCESS")) {
+                    terminos = nuevo
+                    null
+                } else {
+                    body?.listMessage?.firstOrNull() ?: "Error al guardar (${resp.code()})"
+                }
             }
         } catch (e: Exception) {
             "No se pudo conectar: ${e.message}"
@@ -121,9 +177,7 @@ fun TerminosPlanta(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             shape = RoundedCornerShape(24.dp),
             color = FondoNegroAbsoluto,
             border = BorderStroke(1.dp, ColorGrisBorde)
@@ -147,16 +201,13 @@ fun TerminosPlanta(
                     }
 
                     t != null -> Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(20.dp),
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "CONFIGURACIÓN DE TÉRMINOS",
+                            text = if (esAdmin) "TÉRMINOS GLOBALES DE LA PLANTA" else "MIS TÉRMINOS PERSONALES",
                             color = AmarilloMineroBrillante,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black,
@@ -188,7 +239,7 @@ fun TerminosPlanta(
                                 val fc = v["Factor de concentrado"]?.toDoubleOrNull()
                                 val hu = v["% H2O (Humedad)"]?.toDoubleOrNull()
                                 val me = v["Merma de proceso (%)"]?.toDoubleOrNull()
-                                if (fc == null || hu == null || me == null) "Por favor ingrese valores numéricos válidos."
+                                if (fc == null || hu == null || me == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(factorConcentrado = fc, humedad = hu, merma = me))
                             }
                         )
@@ -206,7 +257,7 @@ fun TerminosPlanta(
                                 val lc = v["Ley Cu concentrado (%)"]?.toDoubleOrNull()
                                 val la = v["Ley Ag concentrado (oz/tc)"]?.toDoubleOrNull()
                                 val lo = v["Ley Au concentrado (oz/tc)"]?.toDoubleOrNull()
-                                if (lc == null || la == null || lo == null) "Por favor ingrese valores numéricos válidos."
+                                if (lc == null || la == null || lo == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(leyConcentradoCu = lc, leyConcentradoAg = la, leyConcentradoAu = lo))
                             }
                         )
@@ -226,7 +277,7 @@ fun TerminosPlanta(
                                 val d = v["Deducción Cu"]?.toDoubleOrNull()
                                 val g = v["Gastos ref Cu (\$/lb)"]?.toDoubleOrNull()
                                 val pr = v["Protección Cu"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null || pr == null) "Por favor ingrese valores numéricos válidos."
+                                if (p == null || d == null || g == null || pr == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(pagableCu = p, deduccionCu = d, gastosRefCu = g, proteccionCu = pr))
                             }
                         )
@@ -244,7 +295,7 @@ fun TerminosPlanta(
                                 val p = v["% Pagable Ag"]?.toDoubleOrNull()
                                 val d = v["Deducción Ag (gr)"]?.toDoubleOrNull()
                                 val g = v["Gastos ref Ag (\$/oz)"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null) "Por favor ingrese valores numéricos válidos."
+                                if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(pagableAg = p, deduccionAg = d, gastosRefAg = g))
                             }
                         )
@@ -262,7 +313,7 @@ fun TerminosPlanta(
                                 val p = v["% Pagable Au"]?.toDoubleOrNull()
                                 val d = v["Deducción Au (gr)"]?.toDoubleOrNull()
                                 val g = v["Gastos ref Au (\$/oz)"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null) "Por favor ingrese valores numéricos válidos."
+                                if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(pagableAu = p, deduccionAu = d, gastosRefAu = g))
                             }
                         )
@@ -274,7 +325,7 @@ fun TerminosPlanta(
                             campos = listOf("Maquila (\$/TMNS)" to t.maquila.toString()),
                             onGuardar = { v ->
                                 val m = v["Maquila (\$/TMNS)"]?.toDoubleOrNull()
-                                if (m == null) "Por favor ingrese valores numéricos válidos."
+                                if (m == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(maquila = m))
                             }
                         )
@@ -290,7 +341,7 @@ fun TerminosPlanta(
                             onGuardar = { v ->
                                 val a = v["Análisis (\$)"]?.toDoubleOrNull()
                                 val tr = v["Traslado interno (\$)"]?.toDoubleOrNull()
-                                if (a == null || tr == null) "Por favor ingrese valores numéricos válidos."
+                                if (a == null || tr == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(analisis = a, trasladoInterno = tr))
                             }
                         )
@@ -306,7 +357,7 @@ fun TerminosPlanta(
                             onGuardar = { v ->
                                 val igv = v["IGV Porcentaje (0.18 = 18%)"]?.toDoubleOrNull()
                                 val det = v["Detracción Porcentaje (0.10 = 10%)"]?.toDoubleOrNull()
-                                if (igv == null || det == null) "Por favor ingrese valores numéricos válidos."
+                                if (igv == null || det == null) "Ingrese valores numéricos válidos."
                                 else guardar(t.copy(igvPorcentaje = igv, detraccionPorcentaje = det))
                             }
                         )
@@ -317,9 +368,7 @@ fun TerminosPlanta(
 
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp)
+                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TextoGrisSecundario)
                 }
@@ -328,10 +377,6 @@ fun TerminosPlanta(
     }
 }
 
-// ========================================================
-// TARJETA DE CONFIGURACIÓN CON MODO EDITAR/GUARDAR
-// onGuardar devuelve un mensaje de error, o null si se guardó bien
-// ========================================================
 @Composable
 private fun TarjetaConfiguracionSeccion(
     titulo: String,
@@ -416,12 +461,7 @@ private fun TarjetaConfiguracionSeccion(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = etiqueta, color = TextoGrisSecundario, fontSize = 13.sp)
-                        Text(
-                            text = valorActual,
-                            color = TextoBlancoSuave,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
+                        Text(text = valorActual, color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
