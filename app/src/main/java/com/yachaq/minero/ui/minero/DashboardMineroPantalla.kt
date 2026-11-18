@@ -4,30 +4,34 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.yachaq.minero.data.remote.model.LoginResponse
+import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
 import com.yachaq.minero.ui.modulos.HistorialPantalla
-import com.yachaq.minero.ui.modulos.MisTerminosPantalla // <-- NUEVO IMPORT
+import com.yachaq.minero.ui.modulos.MisTerminosPantalla
 
 @Composable
 fun DashboardMineroPantalla(
     usuario: LoginResponse,
     onCerrarSesion: () -> Unit
 ) {
+    LaunchedEffect(usuario) {
+        SesionUsuario.iniciarSesion(usuario)
+    }
+
     var tabSeleccionada by remember { mutableIntStateOf(0) }
 
     val tituloActual = when (tabSeleccionada) {
         0 -> "Calculadora Minera"
         1 -> "Plantas Mineras"
         2 -> "Historial de Operaciones"
-        6 -> "Mi Planta y Términos" // <-- NUEVO TÍTULO
+        6 -> "Mi Planta y Términos"
         else -> "Minero Yachaq"
     }
 
     AppTopBar(
         titulo = tituloActual,
-        usuario = usuario,
         tabSeleccionada = tabSeleccionada,
         onSeleccionarTab = { tabSeleccionada = it },
         onCerrarSesion = onCerrarSesion

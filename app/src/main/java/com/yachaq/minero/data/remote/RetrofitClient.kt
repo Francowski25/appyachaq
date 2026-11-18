@@ -10,12 +10,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL_LOCAL = "http://127.0.0.1:8080/"
-    private var BASE_URL = BASE_URL_LOCAL
-
-    // ---------- RENDER (comentado, fácil de activar) ----------
-    //private const val BASE_URL_RENDER = "https://apirfyachaq-podo.onrender.com/"
-    //private var BASE_URL = BASE_URL_RENDER
+    private const val BASE_URL = "https://apirfyachaq-podo.onrender.com/"
 
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
@@ -32,46 +27,22 @@ object RetrofitClient {
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    private fun buildRetrofit(): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
+    private val retrofit: Retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
 
-    var authApi: AuthApi = buildRetrofit().create(AuthApi::class.java)
-        private set
-    var userApi: UserApi = buildRetrofit().create(UserApi::class.java)
-        private set
-    var plantApi: PlantApi = buildRetrofit().create(PlantApi::class.java)
-        private set
-    var termsApi: TermsApi = buildRetrofit().create(TermsApi::class.java)
-        private set
-    var calculationApi: CalculationApi = buildRetrofit().create(CalculationApi::class.java)
-        private set
-    var marketPriceApi: MarketPriceApi = buildRetrofit().create(MarketPriceApi::class.java)
-        private set
-    var userTermsApi: UserTermsApi = buildRetrofit().create(UserTermsApi::class.java)
-        private set
-
-    // ---------- CAMBIO DE SERVIDOR (comentado, solo aplica con Render) ----------
-    /*
-    fun cambiarServidor(usarLocal: Boolean) {
-        BASE_URL = if (usarLocal) BASE_URL_LOCAL else BASE_URL_RENDER
-
-        val newRetrofit = buildRetrofit()
-        authApi = newRetrofit.create(AuthApi::class.java)
-        userApi = newRetrofit.create(UserApi::class.java)
-        plantApi = newRetrofit.create(PlantApi::class.java)
-        termsApi = newRetrofit.create(TermsApi::class.java)
-        calculationApi = newRetrofit.create(CalculationApi::class.java)
-        marketPriceApi = newRetrofit.create(MarketPriceApi::class.java)
-        userTermsApi = newRetrofit.create(UserTermsApi::class.java)
-    }
-    */
+    val authApi: AuthApi = retrofit.create(AuthApi::class.java)
+    val userApi: UserApi = retrofit.create(UserApi::class.java)
+    val plantApi: PlantApi = retrofit.create(PlantApi::class.java)
+    val termsApi: TermsApi = retrofit.create(TermsApi::class.java)
+    val calculationApi: CalculationApi = retrofit.create(CalculationApi::class.java)
+    val marketPriceApi: MarketPriceApi = retrofit.create(MarketPriceApi::class.java)
+    val userTermsApi: UserTermsApi = retrofit.create(UserTermsApi::class.java)
 }

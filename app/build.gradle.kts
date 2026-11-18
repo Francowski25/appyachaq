@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    //id("com.google.devtools.ksp") version "2.3.10"
 }
 
 android {
@@ -41,6 +42,10 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.android.billingclient:billing-ktx:7.1.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    //implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    //implementation("androidx.room:room-runtime:2.8.5")
+    //ksp("androidx.room:room-compiler:2.8.5")
     implementation(libs.material.icons.extended)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

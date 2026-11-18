@@ -26,6 +26,24 @@ data class LoginResponse(
     val type: String? = null
 )
 
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+
+data class AuthMessageResponse(
+    val type: String? = null,
+    val listMessage: List<String>? = null
+) {
+    val exitoso: Boolean get() = type == "SUCCESS"
+    val mensaje: String get() = listMessage?.firstOrNull() ?: "Error desconocido"
+}
+
 object SesionUsuario {
     var usuarioActual by mutableStateOf<LoginResponse?>(null)
         private set
@@ -69,5 +87,9 @@ object SesionUsuario {
 
     fun consultasRestantes(): Int {
         return if (esPremium()) 999 else (LIMITE_GRATUITO - contadorConsultas).coerceAtLeast(0)
+    }
+
+    fun actualizarPerfil(nombre: String, correo: String) {
+        usuarioActual = usuarioActual?.copy(name = nombre, email = correo)
     }
 }

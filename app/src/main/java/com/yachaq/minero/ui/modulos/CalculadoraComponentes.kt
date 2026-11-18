@@ -8,7 +8,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Factory
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,16 +33,138 @@ private fun toneladas(v: Double) = String.format(Locale.US, "%.2f TM", v)
 
 private fun ResponsePlant.alquiler() = String.format(Locale.US, "%.2f", rentalCostPerTM ?: 0.0)
 
+// Ubicación y costo de alquiler por TM de una planta
+@Composable
+private fun PlantaMeta(planta: ResponsePlant?, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = null,
+            tint = TextoGrisSecundario,
+            modifier = Modifier.size(12.dp)
+        )
+        Spacer(Modifier.width(2.dp))
+        Text(
+            text = planta?.location ?: "",
+            color = TextoGrisSecundario,
+            fontSize = 11.sp,
+            maxLines = 1,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        Text(
+            text = "  •  $ ${planta?.alquiler() ?: "0.00"}/TM",
+            color = AmarilloMineroBrillante,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            maxLines = 1
+        )
+    }
+}
+
+// Fila de una planta en la lista: ícono, nombre, ubicación y estrella si es favorita
+@Composable
+private fun ItemPlantaContenido(planta: ResponsePlant, favorita: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .background(GrisCampos, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Factory,
+                contentDescription = null,
+                tint = AmarilloMineroBrillante,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = planta.name ?: "",
+                color = TextoBlancoSuave,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                maxLines = 1
+            )
+            PlantaMeta(planta)
+        }
+        if (favorita) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "Favorita",
+                tint = AmarilloMineroBrillante,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ItemPlantaMenu(planta: ResponsePlant, favorita: Boolean, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { ItemPlantaContenido(planta, favorita) },
+        onClick = onClick
+    )
+    HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+}
+
+// Título de sección dentro de la lista desplegable
+@Composable
+private fun EncabezadoLista(texto: String, conEstrella: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (conEstrella) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = AmarilloMineroBrillante,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(
+            text = texto,
+            color = AmarilloMineroBrillante,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+// Selector de planta. Con priorizarFavoritos, las favoritas van primero y el resto
+// queda plegado en "Otras plantas". Sin favoritas se muestra la lista completa.
 @Composable
 fun SeccionPlantaCard(
     listaPlantas: List<ResponsePlant>,
     esConfirmado: Boolean,
     plantaConfirmada: ResponsePlant?,
     onConfirmar: (ResponsePlant) -> Unit,
-    onCambiar: () -> Unit
+    onCambiar: () -> Unit,
+    idsFavoritos: Set<String> = emptySet(),
+    priorizarFavoritos: Boolean = false
 ) {
-    var plantaSeleccionadaTemp by remember(listaPlantas) { mutableStateOf(listaPlantas.firstOrNull()) }
+    fun esFavorita(p: ResponsePlant): Boolean {
+        val id = p.idPlant
+        return id != null && id in idsFavoritos
+    }
+
+    val favoritas = if (priorizarFavoritos) listaPlantas.filter { esFavorita(it) } else emptyList()
+    val otras = if (priorizarFavoritos) listaPlantas.filterNot { esFavorita(it) } else listaPlantas
+
+    var plantaSeleccionadaTemp by remember(listaPlantas, idsFavoritos) {
+        mutableStateOf(favoritas.firstOrNull() ?: listaPlantas.firstOrNull())
+    }
     var expanded by remember { mutableStateOf(false) }
+    var mostrarOtras by remember { mutableStateOf(false) }
     var mostrarDialogoCambiar by remember { mutableStateOf(false) }
 
     Card(
@@ -71,6 +197,14 @@ fun SeccionPlantaCard(
             }
 
             if (!esConfirmado) {
+                if (priorizarFavoritos && favoritas.isEmpty()) {
+                    Text(
+                        text = "Aún no tienes plantas favoritas. Márcalas en Mis términos por planta para verlas primero.",
+                        color = FondoNegroAbsoluto.copy(alpha = 0.75f),
+                        fontSize = 11.sp
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -82,7 +216,7 @@ fun SeccionPlantaCard(
                             shape = RoundedCornerShape(12.dp),
                             color = FondoNegroAbsoluto,
                             border = BorderStroke(1.dp, ColorGrisBorde),
-                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -90,21 +224,26 @@ fun SeccionPlantaCard(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = plantaSeleccionadaTemp?.name ?: "Seleccionar...",
-                                        color = TextoBlancoSuave,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
-                                    )
-                                    plantaSeleccionadaTemp?.let { p ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = "${p.location ?: ""} | Alquiler: $${p.alquiler()}/TM",
-                                            color = TextoGrisSecundario,
-                                            fontSize = 10.sp,
-                                            maxLines = 1
+                                            text = plantaSeleccionadaTemp?.name ?: "Seleccionar...",
+                                            color = TextoBlancoSuave,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f, fill = false)
                                         )
+                                        if (plantaSeleccionadaTemp?.let { esFavorita(it) } == true) {
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.Star,
+                                                contentDescription = null,
+                                                tint = AmarilloMineroBrillante,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                        }
                                     }
+                                    plantaSeleccionadaTemp?.let { p -> PlantaMeta(p) }
                                 }
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
@@ -119,30 +258,55 @@ fun SeccionPlantaCard(
                             onDismissRequest = { expanded = false },
                             modifier = Modifier.background(FondoNegroSecundario).fillMaxWidth(0.85f)
                         ) {
-                            listaPlantas.forEach { planta ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                        ) {
-                                            Icon(Icons.Default.Factory, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(20.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(planta.name ?: "", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    Text("📍 ${planta.location ?: ""}", color = TextoGrisSecundario, fontSize = 11.sp)
-                                                    Text("💵 $${planta.alquiler()}/TM", color = AmarilloMineroBrillante, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                                }
-                                            }
-                                        }
-                                    },
-                                    onClick = {
+                            if (favoritas.isNotEmpty()) {
+                                EncabezadoLista("MIS FAVORITAS", conEstrella = true)
+                                favoritas.forEach { planta ->
+                                    ItemPlantaMenu(planta, favorita = true) {
                                         plantaSeleccionadaTemp = planta
                                         expanded = false
                                     }
-                                )
-                                HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+                                }
+                                if (otras.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Otras plantas (${otras.size})",
+                                                    color = AmarilloMineroBrillante,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Icon(
+                                                    imageVector = if (mostrarOtras) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    contentDescription = null,
+                                                    tint = AmarilloMineroBrillante
+                                                )
+                                            }
+                                        },
+                                        onClick = { mostrarOtras = !mostrarOtras }
+                                    )
+                                    HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+                                    if (mostrarOtras) {
+                                        otras.forEach { planta ->
+                                            ItemPlantaMenu(planta, favorita = false) {
+                                                plantaSeleccionadaTemp = planta
+                                                expanded = false
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                if (priorizarFavoritos) EncabezadoLista("PLANTAS DISPONIBLES")
+                                otras.forEach { planta ->
+                                    ItemPlantaMenu(planta, favorita = false) {
+                                        plantaSeleccionadaTemp = planta
+                                        expanded = false
+                                    }
+                                }
                             }
                         }
                     }
@@ -150,9 +314,12 @@ fun SeccionPlantaCard(
                     Button(
                         onClick = { plantaSeleccionadaTemp?.let { onConfirmar(it) } },
                         enabled = plantaSeleccionadaTemp != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = FondoNegroAbsoluto, contentColor = AmarilloMineroBrillante),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = FondoNegroAbsoluto,
+                            contentColor = AmarilloMineroBrillante
+                        ),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.height(52.dp)
+                        modifier = Modifier.height(56.dp)
                     ) {
                         Text("Confirmar", fontWeight = FontWeight.Black, fontSize = 13.sp)
                     }
@@ -173,10 +340,33 @@ fun SeccionPlantaCard(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(22.dp))
-                            Column {
-                                Text(plantaConfirmada?.name ?: "", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("📍 ${plantaConfirmada?.location ?: ""} | Alquiler: $${plantaConfirmada?.alquiler() ?: "0.00"}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = AmarilloMineroBrillante,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = plantaConfirmada?.name ?: "",
+                                        color = TextoBlancoSuave,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        maxLines = 1,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    if (plantaConfirmada?.let { esFavorita(it) } == true) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = AmarilloMineroBrillante,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                                PlantaMeta(plantaConfirmada)
                             }
                         }
 
@@ -305,6 +495,7 @@ fun SeccionCamposEntrada(
     }
 }
 
+// Resultado del cálculo: planta destino, total a pagar y detalle por bloques
 @Composable
 fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: ResponsePlant?) {
     val totalAPagar = resultado.totalAPagar ?: 0.0
@@ -327,6 +518,7 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
     val hayAg = (resultado.contenidoPagableAg ?: 0.0) > 0
     val hayAu = (resultado.contenidoPagableAu ?: 0.0) > 0
 
+    // La maquila no viene en la respuesta: se obtiene por diferencia
     val maquila = pagoCu + pagoAg + pagoAu - reduccionRefinacion - analisisPorTmns - trasladoPorTmns - pagoPorTm
 
     data class DetalleCalculo(val label: String, val valor: String, val esNegativo: Boolean = false)
@@ -363,45 +555,71 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(1.dp, ColorGrisBorde)
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Surface(shape = RoundedCornerShape(12.dp), color = GrisCampos, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("PLANTA DESTINO DE PROCESAMIENTO", color = AmarilloMineroBrillante, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(2.dp))
-                    Text(plantaConfirmada?.name ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Ubicación: ${plantaConfirmada?.location ?: ""} | Alquiler: $${plantaConfirmada?.alquiler() ?: "0.00"}/TM", color = TextoGrisSecundario, fontSize = 11.sp)
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Factory,
+                        contentDescription = null,
+                        tint = AmarilloMineroBrillante,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("PLANTA DESTINO DE PROCESAMIENTO", color = AmarilloMineroBrillante, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.height(2.dp))
+                        Text(plantaConfirmada?.name ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        PlantaMeta(plantaConfirmada)
+                    }
                 }
             }
 
-            HorizontalDivider(color = ColorGrisBorde)
-
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("LIQUIDACIÓN TOTAL A PAGAR", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    dolares(totalAPagar),
-                    color = if (totalAPagar >= 0) AmarilloMineroBrillante else ErrorRojo,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Black
-                )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = FondoNegroAbsoluto,
+                border = BorderStroke(1.dp, AmarilloMineroBrillante.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("LIQUIDACIÓN TOTAL A PAGAR", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        dolares(totalAPagar),
+                        color = if (totalAPagar >= 0) AmarilloMineroBrillante else ErrorRojo,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    HorizontalDivider(color = ColorGrisBorde)
+                    Spacer(Modifier.height(14.dp))
+                    Text("TONELADAS DE CONCENTRADO (TMNS)", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(toneladas(tmns), color = TextoBlancoSuave, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                }
             }
-
-            Spacer(Modifier.height(4.dp))
-
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("TONELADAS DE CONCENTRADO (TMNS)", color = TextoGrisSecundario, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(toneladas(tmns), color = TextoBlancoSuave, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
-            }
-
-            HorizontalDivider(color = ColorGrisBorde)
 
             listaDetalles.forEach { (titulo, detalles) ->
                 SeccionTitulo(titulo)
-                detalles.forEach { detalle ->
-                    Fila(detalle.label, if (detalle.esNegativo) "- ${detalle.valor}" else detalle.valor)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = GrisCampos.copy(alpha = 0.6f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+                        detalles.forEachIndexed { i, detalle ->
+                            Fila(detalle.label, detalle.valor, detalle.esNegativo)
+                            if (i < detalles.lastIndex) {
+                                HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+                            }
+                        }
+                    }
                 }
-                Spacer(Modifier.height(4.dp))
             }
         }
     }
@@ -409,9 +627,19 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
 
 @Composable
 private fun SeccionTitulo(titulo: String) {
-    Text(titulo, color = AmarilloMineroBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(14.dp)
+                .background(AmarilloMineroBrillante, RoundedCornerShape(2.dp))
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(titulo, color = AmarilloMineroBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
 }
 
+// Campo numérico que acepta coma o punto decimal
 @Composable
 private fun Campo(valor: String, etiqueta: String, onCambio: (String) -> Unit) {
     OutlinedTextField(
@@ -435,13 +663,20 @@ private fun Campo(valor: String, etiqueta: String, onCambio: (String) -> Unit) {
     )
 }
 
+// Fila de etiqueta y valor; los descuentos se muestran en rojo con signo negativo
 @Composable
-private fun Fila(etiqueta: String, valor: String) {
+private fun Fila(etiqueta: String, valor: String, esNegativo: Boolean = false) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier.fillMaxWidth().padding(vertical = 9.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(etiqueta, color = TextoGrisSecundario, fontSize = 12.sp)
-        Text(valor, color = TextoBlancoSuave, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+        Text(etiqueta, color = TextoGrisSecundario, fontSize = 12.sp, modifier = Modifier.weight(1f))
+        Text(
+            text = if (esNegativo) "- $valor" else valor,
+            color = if (esNegativo) ErrorRojo else TextoBlancoSuave,
+            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp
+        )
     }
 }

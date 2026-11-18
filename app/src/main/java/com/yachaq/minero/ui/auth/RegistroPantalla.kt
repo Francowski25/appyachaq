@@ -1,15 +1,12 @@
 package com.yachaq.minero.ui.auth
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import android.util.Patterns
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -17,27 +14,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.google.gson.Gson
-import com.yachaq.minero.R
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.AuthRegisterRequest
 import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.logica.ResultadoValidacion
 import com.yachaq.minero.logica.ValidadorUsuario
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.auth.componentes.*
 import kotlinx.coroutines.launch
 import retrofit2.Response
 import java.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,13 +41,36 @@ fun RegistroPantalla(
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
+    var confirmar by remember { mutableStateOf("") }
     var errorMensaje by remember { mutableStateOf<String?>(null) }
     var cargando by remember { mutableStateOf(false) }
 
-    val scrollState = rememberScrollState()
+    // Los errores de cada campo aparecen al salir del campo o al intentar registrarse
+    var tocoNombre by remember { mutableStateOf(false) }
+    var tocoCorreo by remember { mutableStateOf(false) }
+    var intento by remember { mutableStateOf(false) }
+
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+
+    val correoValido = Patterns.EMAIL_ADDRESS.matcher(correo.trim()).matches()
+    val errorNombre = if ((tocoNombre || intento) && nombre.isBlank()) "Ingresa tu nombre completo" else null
+    val errorCorreo = if ((tocoCorreo || intento) && !correoValido) "Ingresa un correo válido" else null
+    val errorClave = if (intento && clave.isBlank()) "Ingresa una contraseña" else null
+    val errorConfirmar = when {
+        confirmar.isNotEmpty() && confirmar != clave -> "Las contraseñas no coinciden"
+        intento && confirmar.isEmpty() -> "Confirma tu contraseña"
+        else -> null
+    }
 
     fun ejecutarRegistro() {
+        intento = true
+        errorMensaje = null
+
+        if (nombre.isBlank() || !correoValido || clave.isBlank() || confirmar != clave) return
+
+        focusManager.clearFocus()
+
         when (val resultado = ValidadorUsuario.validarFormularioCompleto(nombre, correo, clave)) {
             is ResultadoValidacion.Exito -> {
                 val correoLimpio = correo.trim()
@@ -85,8 +101,12 @@ fun RegistroPantalla(
                                 else -> "Error del servidor (${resp.code()})"
                             }
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: IOException) {
                         errorMensaje = "No se pudo conectar al servidor"
+                    } catch (e: Exception) {
+                        errorMensaje = "Ocurrió un error inesperado: ${e.message}"
                     } finally {
                         cargando = false
                     }
@@ -98,180 +118,176 @@ fun RegistroPantalla(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Registro de Operador", color = MaterialTheme.colorScheme.primary) },
-                navigationIcon = {
-                    IconButton(onClick = onVolverALogin) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
+    AuthFondo {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Crear cuenta",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onVolverALogin, enabled = !cargando) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    )
-                )
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
+            }
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // LOGO
-                Card(
+                Column(
                     modifier = Modifier
-                        .size(90.dp)
-                        .border(
-                            width = 2.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(AmarilloMineroBrillante, AmarilloMinero)
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                            contentDescription = "Logo",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.padding(6.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "CREAR NUEVA CUENTA",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // CAMPO NOMBRE
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it; errorMensaje = null },
-                    label = { Text("Nombre Completo") },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos,
-                        unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // CAMPO CORREO
-                OutlinedTextField(
-                    value = correo,
-                    onValueChange = { correo = it; errorMensaje = null },
-                    label = { Text("Correo Electrónico") },
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos,
-                        unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // CAMPO CONTRASEÑA
-                OutlinedTextField(
-                    value = clave,
-                    onValueChange = { clave = it; errorMensaje = null },
-                    label = { Text("Contraseña") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos,
-                        unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
-                )
-
-                if (errorMensaje != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = errorMensaje!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // BOTÓN REGISTRAR
-                Button(
-                    onClick = { ejecutarRegistro() },
-                    enabled = !cargando,
-                    modifier = Modifier
+                        .widthIn(max = 420.dp)
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (cargando) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("REGISTRARSE", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Aparecer(0) { AuthLogo(tamano = 84.dp) }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Aparecer(80) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Únete a Yachaq Minero",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Crea tu cuenta para calcular y gestionar tus operaciones",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Aparecer(160) {
+                        TarjetaAuth {
+                            CampoAuth(
+                                valor = nombre,
+                                onValorChange = {
+                                    nombre = it
+                                    errorMensaje = null
+                                },
+                                etiqueta = "Nombre completo",
+                                icono = Icons.Default.Person,
+                                imeAction = ImeAction.Next,
+                                error = errorNombre,
+                                enabled = !cargando,
+                                onPerderFoco = { tocoNombre = true }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            CampoAuth(
+                                valor = correo,
+                                onValorChange = {
+                                    correo = it
+                                    errorMensaje = null
+                                },
+                                etiqueta = "Correo electrónico",
+                                icono = Icons.Default.Email,
+                                teclado = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                                error = errorCorreo,
+                                enabled = !cargando,
+                                onPerderFoco = { tocoCorreo = true }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            CampoAuth(
+                                valor = clave,
+                                onValorChange = {
+                                    clave = it
+                                    errorMensaje = null
+                                },
+                                etiqueta = "Contraseña",
+                                icono = Icons.Default.Lock,
+                                esClave = true,
+                                imeAction = ImeAction.Next,
+                                error = errorClave,
+                                enabled = !cargando
+                            )
+
+                            AnimatedVisibility(visible = clave.isNotEmpty()) {
+                                FortalezaClave(clave = clave, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            CampoAuth(
+                                valor = confirmar,
+                                onValorChange = {
+                                    confirmar = it
+                                    errorMensaje = null
+                                },
+                                etiqueta = "Confirmar contraseña",
+                                icono = Icons.Default.Lock,
+                                esClave = true,
+                                imeAction = ImeAction.Done,
+                                onDone = { ejecutarRegistro() },
+                                error = errorConfirmar,
+                                enabled = !cargando
+                            )
+
+                            MensajeAuth(mensaje = errorMensaje, esError = true)
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            BotonAuth(texto = "CREAR CUENTA", cargando = cargando, onClick = { ejecutarRegistro() })
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Aparecer(240) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "¿Ya tienes una cuenta? ",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(onClick = onVolverALogin, enabled = !cargando, contentPadding = PaddingValues(0.dp)) {
+                                Text(
+                                    text = "Inicia sesión",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
     }
 }
+
 private fun <T> Response<T>.mensajeDeError(): String? = try {
     errorBody()?.string()
         ?.let { Gson().fromJson(it, LoginResponse::class.java) }

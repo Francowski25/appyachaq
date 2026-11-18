@@ -2,17 +2,13 @@ package com.yachaq.minero.logica
 
 import android.util.Patterns
 
-/**
- * Representa el resultado de la validación.
- */
+// Representa el resultado de la validación.
 sealed class ResultadoValidacion {
     object Exito : ResultadoValidacion()
     data class Error(val mensaje: String) : ResultadoValidacion()
 }
 
-/**
- * Clase encargada de validar las credenciales de un usuario.
- */
+// Clase encargada de validar las credenciales de un usuario.
 object ValidadorUsuario {
 
     /**

@@ -5,6 +5,10 @@ export type { AuthLogin$Params as AuthLogin$Params } from './fn/auth/auth-login'
 export { authLogin as authLogin } from './fn/auth/auth-login';
 export type { AuthRegister$Params as AuthRegister$Params } from './fn/auth/auth-register';
 export { authRegister as authRegister } from './fn/auth/auth-register';
+export type { AuthForgotPassword$Params as AuthForgotPassword$Params } from './fn/auth/auth-forgot-password';
+export { authForgotPassword as authForgotPassword } from './fn/auth/auth-forgot-password';
+export type { AuthResetPassword$Params as AuthResetPassword$Params } from './fn/auth/auth-reset-password';
+export { authResetPassword as authResetPassword } from './fn/auth/auth-reset-password';
 export type { PlantAdd$Params as PlantAdd$Params } from './fn/plant/plant-add';
 export { plantAdd as plantAdd } from './fn/plant/plant-add';
 export type { PlantList$Params as PlantList$Params } from './fn/plant/plant-list';

@@ -8,13 +8,14 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yachaq.minero.data.remote.model.LoginResponse
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
@@ -23,33 +24,25 @@ import kotlinx.coroutines.launch
 @Composable
 fun AppTopBar(
     titulo: String,
-    usuario: LoginResponse,
     tabSeleccionada: Int,
     onSeleccionarTab: (Int) -> Unit,
     onCerrarSesion: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    // Fuente de verdad reactiva: si SesionUsuario cambia, esto se recompone
+    val usuario = SesionUsuario.usuarioActual ?: return
 
     val esAdmin = SesionUsuario.esAdmin()
+    val esPremium = usuario.isPremium
+    val esPremiumOAdmin = esPremium || esAdmin
 
-    // Estado local sincronizado con el usuario y SesionUsuario
-    var esPremiumLocal by remember(usuario.isPremium) { mutableStateOf(usuario.isPremium) }
-
-    // Actualizar estado local si cambia la sesión globalmente
-    LaunchedEffect(usuario.isPremium) {
-        esPremiumLocal = usuario.isPremium
-    }
-
-    // Identidad visual Premium (Admin o Usuario Premium)
-    val esPremiumOAdmin = esPremiumLocal || esAdmin
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             AppSidebar(
-                usuario = usuario,
                 tabSeleccionada = tabSeleccionada,
                 onSeleccionarTab = { index ->
                     onSeleccionarTab(index)
@@ -61,67 +54,78 @@ fun AppTopBar(
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = titulo,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 17.sp
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menú lateral",
-                                tint = MaterialTheme.colorScheme.primary
+                Column {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = titulo,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 17.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                        }
-                    },
-                    actions = {
-                        // BOTÓN DE CAMBIO DE PLAN (solo para usuarios mineros regulares)
-                        if (!esAdmin) {
-                            Surface(
-                                onClick = {
-                                    SesionUsuario.alternarPlanPremiumSimulado()
-                                    esPremiumLocal = SesionUsuario.usuarioActual?.isPremium ?: !esPremiumLocal
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (esPremiumLocal) AmarilloMineroBrillante.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                                ),
-                                modifier = Modifier.padding(end = 12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menú lateral",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        actions = {
+                            // Botón FREE/PREMIUM solo para usuarios no admin
+                            if (!esAdmin) {
+                                Surface(
+                                    onClick = {
+                                        SesionUsuario.alternarPlanPremiumSimulado()
+                                    },
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (esPremium) AmarilloMineroBrillante
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (esPremium) AmarilloMineroBrillante
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                    ),
+                                    modifier = Modifier.padding(end = 12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = if (esPremiumLocal) Icons.Default.Star else Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = if (esPremiumLocal) "PREMIUM" else "FREE",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (esPremiumLocal) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (esPremium) Icons.Default.Star else Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = if (esPremium) FondoNegroAbsoluto
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = if (esPremium) "PREMIUM" else "FREE",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 0.8.sp,
+                                            color = if (esPremium) FondoNegroAbsoluto
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        // Amarillo si es Premium o Admin, de lo contrario el surface estándar
-                        containerColor = if (esPremiumOAdmin) AmarilloMinero.copy(alpha = 0.25f)
-                        else MaterialTheme.colorScheme.surface
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = if (esPremiumOAdmin) AmarilloMinero.copy(alpha = 0.25f)
+                            else MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+                    HorizontalDivider(
+                        color = if (esPremiumOAdmin) AmarilloMinero.copy(alpha = 0.5f)
+                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    )
+                }
             },
             content = content
         )

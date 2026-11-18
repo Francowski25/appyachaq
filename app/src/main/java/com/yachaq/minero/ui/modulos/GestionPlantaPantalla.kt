@@ -1,9 +1,11 @@
 package com.yachaq.minero.ui.modulos
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -13,7 +15,6 @@ import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,19 +22,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.ResponsePlant
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.theme.GrisCampos
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.coroutines.cancellation.CancellationException
+
+private val ColorEstadoOperativa = Color(0xFF4CAF50)
+private val ColorEstadoMantenimiento = Color(0xFFFF9800)
+
+private enum class FiltroPlanta(val etiqueta: String) {
+    TODAS("Todas"),
+    OPERATIVAS("Operativas"),
+    MANTENIMIENTO("Mantenimiento")
+}
+
+private fun ResponsePlant.estaOperativa() = status.equals("Operativa", ignoreCase = true)
 
 @Composable
 fun GestionPlantaPantalla() {
     val scope = rememberCoroutineScope()
 
-    // ---------- Datos desde el backend ----------
     var plantas by remember { mutableStateOf<List<ResponsePlant>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
     var errorLista by remember { mutableStateOf<String?>(null) }
@@ -49,6 +62,8 @@ fun GestionPlantaPantalla() {
             } else {
                 errorLista = "Error al cargar plantas (${resp.code()})"
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             errorLista = "No se pudo conectar: ${e.message}"
         } finally {
@@ -56,20 +71,31 @@ fun GestionPlantaPantalla() {
         }
     }
 
-    // ---------- Estado de UI ----------
     var textoBusqueda by remember { mutableStateOf("") }
+    var filtro by remember { mutableStateOf(FiltroPlanta.TODAS) }
     var mostrarDialogoCrear by remember { mutableStateOf(false) }
     var plantaSeleccionadaTerminos by remember { mutableStateOf<ResponsePlant?>(null) }
     var plantaAEliminar by remember { mutableStateOf<ResponsePlant?>(null) }
     var eliminando by remember { mutableStateOf(false) }
     var errorEliminar by remember { mutableStateOf<String?>(null) }
 
-    val plantasVisibles = remember(textoBusqueda, plantas) {
-        if (textoBusqueda.isBlank()) plantas
-        else plantas.filter {
-            (it.name ?: "").contains(textoBusqueda, ignoreCase = true) ||
-                    (it.location ?: "").contains(textoBusqueda, ignoreCase = true)
-        }
+    val totalOperativas = plantas.count { it.estaOperativa() }
+    val totalMantenimiento = plantas.size - totalOperativas
+
+    val plantasVisibles = remember(textoBusqueda, plantas, filtro) {
+        plantas
+            .filter { p ->
+                when (filtro) {
+                    FiltroPlanta.TODAS -> true
+                    FiltroPlanta.OPERATIVAS -> p.estaOperativa()
+                    FiltroPlanta.MANTENIMIENTO -> !p.estaOperativa()
+                }
+            }
+            .filter {
+                textoBusqueda.isBlank() ||
+                        (it.name ?: "").contains(textoBusqueda, ignoreCase = true) ||
+                        (it.location ?: "").contains(textoBusqueda, ignoreCase = true)
+            }
     }
 
     fun eliminar(planta: ResponsePlant) {
@@ -87,6 +113,8 @@ fun GestionPlantaPantalla() {
                     errorEliminar = body?.listMessage?.firstOrNull()
                         ?: "No se pudo eliminar (${resp.code()})"
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 errorEliminar = "No se pudo conectar: ${e.message}"
             } finally {
@@ -98,24 +126,39 @@ fun GestionPlantaPantalla() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Column {
-                Text(
-                    text = "GESTIÓN DE PLANTAS MINERAS",
-                    color = AmarilloMineroBrillante,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.2.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Administración general para agregar y gestionar plantas procesadoras",
-                    color = TextoGrisSecundario,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    modifier = Modifier.size(46.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Factory,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = "Gestión de Plantas",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Plantas procesadoras y sus términos por defecto",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -125,38 +168,64 @@ fun GestionPlantaPantalla() {
                 onValueChange = { textoBusqueda = it },
                 label = { Text("Buscar por nombre o ubicación...") },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = AmarilloMineroBrillante)
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                    focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                    focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                    focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
-                ),
-                modifier = Modifier.fillMaxWidth()
+                    focusedContainerColor = GrisCampos,
+                    unfocusedContainerColor = GrisCampos,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FiltroPlanta.entries.forEach { f ->
+                    val cantidad = when (f) {
+                        FiltroPlanta.TODAS -> plantas.size
+                        FiltroPlanta.OPERATIVAS -> totalOperativas
+                        FiltroPlanta.MANTENIMIENTO -> totalMantenimiento
+                    }
+                    FilterChip(
+                        selected = filtro == f,
+                        onClick = { filtro = f },
+                        label = {
+                            Text(
+                                text = "${f.etiqueta} ($cantidad)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             when {
                 cargando -> Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = AmarilloMineroBrillante)
-                }
+                ) { CircularProgressIndicator() }
 
                 errorLista != null -> Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(errorLista.orEmpty(), color = ErrorRojo, fontSize = 13.sp)
-                        TextButton(onClick = { recargar++ }) {
-                            Text("REINTENTAR", color = AmarilloMineroBrillante)
-                        }
+                        Text(errorLista.orEmpty(), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                        TextButton(onClick = { recargar++ }) { Text("REINTENTAR") }
                     }
                 }
 
@@ -172,20 +241,27 @@ fun GestionPlantaPantalla() {
                         Icon(
                             imageVector = Icons.Default.SearchOff,
                             contentDescription = null,
-                            tint = ErrorRojo,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(48.dp)
                         )
                         Text(
                             text = if (plantas.isEmpty()) "No hay plantas registradas" else "No se encontraron plantas",
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = TextoBlancoSuave
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (textoBusqueda.isNotBlank()) {
                             Text(
                                 text = "No hay resultados para \"$textoBusqueda\". Intente con otro término.",
-                                fontSize = 12.sp,
-                                color = TextoGrisSecundario,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        } else if (plantas.isNotEmpty()) {
+                            Text(
+                                text = "No hay plantas con el estado seleccionado.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -194,6 +270,7 @@ fun GestionPlantaPantalla() {
 
                 else -> LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp),
                     modifier = Modifier.fillMaxWidth().weight(1f)
                 ) {
                     items(
@@ -213,17 +290,16 @@ fun GestionPlantaPantalla() {
             }
         }
 
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = { mostrarDialogoCrear = true },
-            containerColor = AmarilloMineroBrillante,
-            contentColor = FondoNegroAbsoluto,
+            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            text = { Text("Nueva planta", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Agregar Planta")
-        }
+        )
     }
 
-    // ---------- Términos de la planta ----------
     plantaSeleccionadaTerminos?.let { planta ->
         val id = planta.idPlant
         if (id != null) {
@@ -237,7 +313,6 @@ fun GestionPlantaPantalla() {
         }
     }
 
-    // ---------- Crear planta ----------
     if (mostrarDialogoCrear) {
         DialogoNuevaPlanta(
             onDismiss = { mostrarDialogoCrear = false },
@@ -248,27 +323,25 @@ fun GestionPlantaPantalla() {
         )
     }
 
-    // ---------- Confirmar eliminación ----------
     plantaAEliminar?.let { planta ->
         AlertDialog(
             onDismissRequest = { if (!eliminando) plantaAEliminar = null },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = FondoNegroSecundario,
             icon = {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = ErrorRojo, modifier = Modifier.size(32.dp))
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
             },
-            title = {
-                Text("Eliminar Planta Procesadora", fontWeight = FontWeight.Black, fontSize = 18.sp, color = ErrorRojo)
-            },
+            title = { Text(text = "Eliminar Planta", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "¿Está seguro de que desea eliminar la planta '${planta.name ?: ""}'? Esta acción afectará los registros asociados.",
-                        fontSize = 13.sp,
-                        color = TextoGrisSecundario
+                        fontSize = 14.sp
                     )
                     errorEliminar?.let {
-                        Text(it, color = ErrorRojo, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             },
@@ -276,7 +349,7 @@ fun GestionPlantaPantalla() {
                 Button(
                     onClick = { eliminar(planta) },
                     enabled = !eliminando,
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRojo, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     if (eliminando) {
@@ -286,15 +359,16 @@ fun GestionPlantaPantalla() {
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Eliminar Planta", fontWeight = FontWeight.Bold)
+                        Text("Eliminar", fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { plantaAEliminar = null }, enabled = !eliminando) {
-                    Text("Cancelar", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
+                    Text("Cancelar")
                 }
-            }
+            },
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
@@ -306,117 +380,141 @@ fun PlantaAdminCard(
     onEliminar: () -> Unit
 ) {
     val estado = planta.status ?: "Sin estado"
-    val esOperativa = estado.equals("Operativa", ignoreCase = true)
-    val estadoColor = if (esOperativa) Color(0xFF4CAF50) else Color(0xFFFF9800)
+    val estadoColor = if (planta.estaOperativa()) ColorEstadoOperativa else ColorEstadoMantenimiento
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, ColorGrisBorde),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    modifier = Modifier.size(46.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Factory,
-                        contentDescription = null,
-                        tint = AmarilloMineroBrillante,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = planta.name ?: "Sin nombre",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoBlancoSuave
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Surface(shape = RoundedCornerShape(8.dp), color = estadoColor.copy(alpha = 0.2f)) {
-                        Text(
-                            text = estado,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = estadoColor
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Factory,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
+                }
 
-                    IconButton(onClick = onEliminar) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar planta", tint = ErrorRojo)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = planta.name ?: "Sin nombre",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = planta.location ?: "Ubicación no especificada",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                }
+
+                Surface(shape = RoundedCornerShape(8.dp), color = estadoColor.copy(alpha = 0.2f)) {
+                    Text(
+                        text = estado.uppercase(),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = estadoColor
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = TextoGrisSecundario,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = planta.location ?: "Ubicación no especificada",
-                    fontSize = 12.sp,
-                    color = TextoGrisSecundario
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Capacidad",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${planta.capacityTMAD ?: 0.0} TMAD",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Alquiler / TM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = String.format(Locale.US, "$ %.2f", planta.rentalCostPerTM ?: 0.0),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = ColorGrisBorde)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("Capacidad:", fontSize = 11.sp, color = TextoGrisSecundario)
-                    Text(
-                        text = "${planta.capacityTMAD ?: 0.0} TMAD",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoBlancoSuave
-                    )
-                }
-                Column {
-                    Text("Alquiler / TM:", fontSize = 11.sp, color = TextoGrisSecundario)
-                    Text(
-                        text = String.format(Locale.US, "$ %.2f", planta.rentalCostPerTM ?: 0.0),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AmarilloMineroBrillante
-                    )
-                }
-
                 OutlinedButton(
                     onClick = onGestionarTerminos,
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Términos", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.EditNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Gestionar términos",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                IconButton(onClick = onEliminar) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar planta",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    )
                 }
             }
         }

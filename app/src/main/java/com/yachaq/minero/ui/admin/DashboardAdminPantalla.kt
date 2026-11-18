@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.yachaq.minero.data.remote.model.LoginResponse
+import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.componentes.AppTopBar
 import com.yachaq.minero.ui.modulos.CalculadoraPantalla
 import com.yachaq.minero.ui.modulos.PlantaPantalla
@@ -17,6 +18,10 @@ fun DashboardAdminPantalla(
     usuario: LoginResponse,
     onCerrarSesion: () -> Unit
 ) {
+    LaunchedEffect(usuario) {
+        SesionUsuario.iniciarSesion(usuario)
+    }
+
     var tabSeleccionada by remember { mutableIntStateOf(0) }
 
     val tituloActual = when (tabSeleccionada) {
@@ -31,7 +36,6 @@ fun DashboardAdminPantalla(
 
     AppTopBar(
         titulo = tituloActual,
-        usuario = usuario,
         tabSeleccionada = tabSeleccionada,
         onSeleccionarTab = { tabSeleccionada = it },
         onCerrarSesion = onCerrarSesion
