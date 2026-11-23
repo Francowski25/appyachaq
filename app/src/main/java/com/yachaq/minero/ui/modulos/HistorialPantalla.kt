@@ -1,5 +1,10 @@
 package com.yachaq.minero.ui.modulos
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +15,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -18,16 +24,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.ResponseHistorial
 import com.yachaq.minero.data.remote.model.SesionUsuario
+import com.yachaq.minero.logica.ExportadorPdf
 import com.yachaq.minero.logica.FormateadorFecha
 import com.yachaq.minero.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.widget.Toast
 import java.util.Locale
 
 private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
@@ -83,6 +95,55 @@ private fun HistorialBloqueado() {
 private fun HistorialContenido() {
     val idUser = SesionUsuario.usuarioActual?.idUser
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var exportandoId by remember { mutableStateOf<String?>(null) }
+    var pendienteExportar by remember { mutableStateOf<ResponseHistorial?>(null) }
+    var registroParaExportar by remember { mutableStateOf<ResponseHistorial?>(null) }
+
+    val exportar: (ResponseHistorial) -> Unit = { reg ->
+        if (exportandoId == null) {
+            scope.launch {
+                exportandoId = reg.idCalculation ?: ""
+                try {
+                    val nombre = withContext(Dispatchers.IO) {
+                        ExportadorPdf.guardarEnDescargas(context, reg)
+                    }
+                    Toast.makeText(context, "PDF guardado en Descargas: $nombre", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "No se pudo exportar: ${e.message}", Toast.LENGTH_LONG).show()
+                } finally {
+                    exportandoId = null
+                }
+            }
+        }
+    }
+
+    // Solo se usa en Android 7 a 9 (API 24-28)
+    val permisoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        val reg = pendienteExportar
+        pendienteExportar = null
+        if (concedido && reg != null) {
+            exportar(reg)
+        } else {
+            Toast.makeText(context, "Se necesita permiso de almacenamiento para guardar el PDF", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Se ejecuta después de que el usuario confirma en el diálogo
+    val iniciarExportacion: (ResponseHistorial) -> Unit = { reg ->
+        val necesitaPermiso = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+        if (necesitaPermiso) {
+            pendienteExportar = reg
+            permisoLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            exportar(reg)
+        }
+    }
 
     var registros by remember { mutableStateOf<List<ResponseHistorial>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
@@ -220,8 +281,10 @@ private fun HistorialContenido() {
                     items(items = filtrados, key = { it.idCalculation ?: it.hashCode() }) { registro ->
                         TarjetaHistorialCard(
                             registro = registro,
+                            exportando = exportandoId != null && exportandoId == registro.idCalculation,
                             onClickDetalle = { detalle = registro },
-                            onEliminar = { idParaEliminar = registro.idCalculation }
+                            onEliminar = { idParaEliminar = registro.idCalculation },
+                            onExportar = { registroParaExportar = registro }
                         )
                     }
                 }
@@ -329,32 +392,66 @@ private fun HistorialContenido() {
         )
     }
 
-    detalle?.let { reg ->
+    registroParaExportar?.let { reg ->
         AlertDialog(
-            onDismissRequest = { detalle = null },
+            onDismissRequest = { registroParaExportar = null },
             shape = RoundedCornerShape(20.dp),
             containerColor = FondoNegroSecundario,
-            title = { Text("DETALLE DE LIQUIDACIÓN", fontWeight = FontWeight.Black, fontSize = 16.sp, color = AmarilloMineroBrillante) },
+            icon = {
+                Icon(
+                    Icons.Default.PictureAsPdf,
+                    contentDescription = null,
+                    tint = AmarilloMineroBrillante,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    "¿Exportar liquidación a PDF?",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    color = AmarilloMineroBrillante
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Mineral: ${reg.material ?: "-"}", fontSize = 12.sp, color = TextoBlancoSuave, fontWeight = FontWeight.Bold)
-                    Text("Tonelaje Bruto: ${reg.tonelaje ?: 0.0} TM", fontSize = 12.sp, color = TextoGrisSecundario)
-                    Text("Ley Registrada: ${reg.ley ?: 0.0}", fontSize = 12.sp, color = TextoGrisSecundario)
-                    Text("Precio Base: $ ${reg.precio ?: 0.0}", fontSize = 12.sp, color = TextoGrisSecundario)
-                    Text("TMNS: ${String.format(Locale.US, "%.2f", reg.tmns ?: 0.0)}", fontSize = 12.sp, color = TextoGrisSecundario)
-                    HorizontalDivider(color = ColorGrisBorde)
-                    Text("Total Liquidado: ${dolares(reg.totalAPagar ?: 0.0)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
+                    Text(
+                        "Se generará un PDF con el detalle completo de este cálculo " +
+                                "(${reg.material ?: "sin mineral"}) y se guardará en la carpeta " +
+                                "Descargas de tu teléfono.",
+                        fontSize = 13.sp,
+                        color = TextoGrisSecundario
+                    )
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = { detalle = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = AmarilloMineroBrillante, contentColor = FondoNegroAbsoluto),
+                    onClick = {
+                        registroParaExportar = null
+                        iniciarExportacion(reg)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AmarilloMineroBrillante,
+                        contentColor = FondoNegroAbsoluto
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Cerrar", fontWeight = FontWeight.Bold)
+                    Text("Sí, exportar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { registroParaExportar = null }) {
+                    Text("Cancelar", color = TextoGrisSecundario)
                 }
             }
+        )
+    }
+
+    detalle?.let { reg ->
+        DetalleLiquidacionDialog(
+            registro = reg,
+            onCerrar = { detalle = null },
+            onExportar = { registroParaExportar = reg }
         )
     }
 }
@@ -362,8 +459,10 @@ private fun HistorialContenido() {
 @Composable
 fun TarjetaHistorialCard(
     registro: ResponseHistorial,
+    exportando: Boolean = false,
     onClickDetalle: () -> Unit = {},
-    onEliminar: () -> Unit = {}
+    onEliminar: () -> Unit = {},
+    onExportar: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
@@ -408,17 +507,20 @@ fun TarjetaHistorialCard(
             }
 
             Surface(shape = RoundedCornerShape(12.dp), color = GrisCampos, modifier = Modifier.fillMaxWidth()) {
-                Row(
+                Column(
                     modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Column {
                         Text("TOTAL LIQUIDACIÓN NETO", fontSize = 10.sp, color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
                         Text(text = dolares(registro.totalAPagar ?: 0.0), fontSize = 18.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         IconButton(
                             onClick = onEliminar,
                             modifier = Modifier.size(36.dp)
@@ -430,16 +532,39 @@ fun TarjetaHistorialCard(
                             )
                         }
 
-                        OutlinedButton(
-                            onClick = onClickDetalle,
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Detalle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = onExportar,
+                                enabled = !exportando,
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, AmarilloMineroBrillante),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                if (exportando) {
+                                    CircularProgressIndicator(
+                                        color = AmarilloMineroBrillante,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                } else {
+                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                Text("Exportar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = onClickDetalle,
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, AmarilloMineroBrillante),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Detalle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

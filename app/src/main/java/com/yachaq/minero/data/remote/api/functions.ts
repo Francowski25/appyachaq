@@ -47,3 +47,17 @@ export type { UsertermsGuardar$Params as UsertermsGuardar$Params } from './fn/us
 export { usertermsGuardar as usertermsGuardar } from './fn/userterms/userterms-guardar';
 export type { UsertermsRestablecer$Params as UsertermsRestablecer$Params } from './fn/userterms/userterms-restablecer';
 export { usertermsRestablecer as usertermsRestablecer } from './fn/userterms/userterms-restablecer';
+export type { UserplantId$Params as UserplantId$Params } from './fn/userplant/userplant-id';
+export { userplantId as userplantId } from './fn/userplant/userplant-id';
+export type { UserplantList$Params as UserplantList$Params } from './fn/userplant/userplant-list';
+export { userplantList as userplantList } from './fn/userplant/userplant-list';
+export type { UserplantAdd$Params as UserplantAdd$Params } from './fn/userplant/userplant-add';
+export { userplantAdd as userplantAdd } from './fn/userplant/userplant-add';
+export type { UserplantDelete$Params as UserplantDelete$Params } from './fn/userplant/userplant-delete';
+export { userplantDelete as userplantDelete } from './fn/userplant/userplant-delete';
+export type { UserplantUpdate$Params as UserplantUpdate$Params } from './fn/userplant/userplant-update';
+export { userplantUpdate as userplantUpdate } from './fn/userplant/userplant-update';
+export type { UserplantTerm$Params as UserplantTerm$Params } from './fn/userplant/userplant-term';
+export { userplantTerm as userplantTerm } from './fn/userplant/userplant-term';
+export type { UserplantTermsUpdate$Params as UserplantTermsUpdate$Params } from './fn/userplant/userplant-terms-update';
+export { userplantTermsUpdate as userplantTermsUpdate } from './fn/userplant/userplant-terms-update';

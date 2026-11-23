@@ -24,6 +24,7 @@ import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.RequestCalculo
 import com.yachaq.minero.data.remote.model.ResponseCalculo
 import com.yachaq.minero.data.remote.model.ResponsePlant
+import com.yachaq.minero.data.remote.model.ResponseUserPlant
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
@@ -131,12 +132,13 @@ fun CalculadoraPantalla() {
     val esMinero = usuarioActual != null && !SesionUsuario.esAdmin()
 
     var plantas by remember { mutableStateOf<List<ResponsePlant>>(emptyList()) }
+    var plantasPersonales by remember { mutableStateOf<List<ResponseUserPlant>>(emptyList()) }
     var idsFavoritos by remember { mutableStateOf<Set<String>>(emptySet()) }
     var cargandoPlantas by remember { mutableStateOf(true) }
     var errorPlantas by remember { mutableStateOf<String?>(null) }
     var recargarPlantas by remember { mutableIntStateOf(0) }
 
-    var plantaConfirmada by remember { mutableStateOf<ResponsePlant?>(null) }
+    var plantaConfirmada by remember { mutableStateOf<PlantaCalculo?>(null) }
     var esConfirmado by remember { mutableStateOf(false) }
 
     var tonelaje by remember { mutableStateOf("") }
@@ -166,9 +168,9 @@ fun CalculadoraPantalla() {
             errorPlantas = "No se pudo conectar: ${e.message}"
         }
 
-        // Si fallan los favoritos no se bloquea la calculadora: se muestran todas las plantas
+        // Favoritas y plantas personales: si fallan no se bloquea la calculadora
         val idUser = usuarioActual?.idUser
-        if (errorPlantas == null && esMinero && !idUser.isNullOrBlank()) {
+        if (esMinero && !idUser.isNullOrBlank()) {
             idsFavoritos = try {
                 obtenerIdsFavoritos(idUser)
             } catch (e: CancellationException) {
@@ -176,8 +178,60 @@ fun CalculadoraPantalla() {
             } catch (e: Exception) {
                 emptySet()
             }
+            plantasPersonales = try {
+                val resp = RetrofitClient.userPlantApi.listarPlantas()
+                // El filtro descarta el elemento de error que el backend devuelve dentro de la lista
+                if (resp.isSuccessful) resp.body().orEmpty().filter { it.idUserPlant != null } else emptyList()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
         }
         cargandoPlantas = false
+    }
+
+    // Minero: sus favoritas del sistema + sus plantas personales. Admin: todas las del sistema.
+    val plantasCalculo = remember(plantas, idsFavoritos, plantasPersonales, esMinero) {
+        if (esMinero) {
+            val favoritas = plantas.mapNotNull { p ->
+                val id = p.idPlant
+                if (id != null && id in idsFavoritos) {
+                    PlantaCalculo(
+                        id = id,
+                        nombre = p.name ?: "Sin nombre",
+                        ubicacion = p.location ?: "",
+                        alquiler = p.rentalCostPerTM ?: 0.0,
+                        esPersonal = false,
+                        favorita = true
+                    )
+                } else null
+            }
+            val personales = plantasPersonales.mapNotNull { p ->
+                val id = p.idUserPlant ?: return@mapNotNull null
+                PlantaCalculo(
+                    id = id,
+                    nombre = p.name ?: "Sin nombre",
+                    ubicacion = p.location ?: "",
+                    alquiler = p.rentalCostPerTM ?: 0.0,
+                    esPersonal = true,
+                    favorita = false
+                )
+            }
+            favoritas + personales
+        } else {
+            plantas.mapNotNull { p ->
+                val id = p.idPlant ?: return@mapNotNull null
+                PlantaCalculo(
+                    id = id,
+                    nombre = p.name ?: "Sin nombre",
+                    ubicacion = p.location ?: "",
+                    alquiler = p.rentalCostPerTM ?: 0.0,
+                    esPersonal = false,
+                    favorita = false
+                )
+            }
+        }
     }
 
     fun calcular() {
@@ -190,7 +244,8 @@ fun CalculadoraPantalla() {
         val lCu = parseOpcional(leyCu)
         val lAg = parseOpcional(leyAg)
         val lAu = parseOpcional(leyAu)
-        val idPlant = plantaConfirmada?.idPlant
+        val planta = plantaConfirmada
+        val idPlant = planta?.id
         val idUser = usuarioActual?.idUser
 
         when {
@@ -210,7 +265,8 @@ fun CalculadoraPantalla() {
                     val resp = RetrofitClient.calculationApi.calcular(
                         RequestCalculo(
                             idUser = idUser,
-                            idPlant = idPlant,
+                            idPlant = if (planta.esPersonal) null else idPlant,
+                            idUserPlant = if (planta.esPersonal) idPlant else null,
                             material = "Cobre + Plata + Oro",
                             tonelaje = t,
                             leyCu = lCu,
@@ -305,25 +361,25 @@ fun CalculadoraPantalla() {
                 strokeWidth = 2.dp,
                 modifier = Modifier.size(28.dp)
             )
-            errorPlantas != null -> {
+            errorPlantas != null && plantasCalculo.isEmpty() -> {
                 Text(errorPlantas.orEmpty(), color = ErrorRojo, fontSize = 12.sp)
                 TextButton(onClick = { recargarPlantas++ }) {
                     Text("REINTENTAR", color = AmarilloMineroBrillante)
                 }
             }
-            plantas.isEmpty() -> Text(
-                "No hay plantas registradas.",
+            plantasCalculo.isEmpty() -> Text(
+                if (esMinero) "Aún no tienes plantas. Añádelas en Mis términos por planta."
+                else "No hay plantas registradas.",
                 color = TextoGrisSecundario,
                 fontSize = 13.sp
             )
             else -> SeccionPlantaCard(
-                listaPlantas = plantas,
+                listaPlantas = plantasCalculo,
                 esConfirmado = esConfirmado,
                 plantaConfirmada = plantaConfirmada,
                 onConfirmar = { planta -> plantaConfirmada = planta; esConfirmado = true; error = null },
                 onCambiar = { esConfirmado = false; plantaConfirmada = null; resultado = null },
-                idsFavoritos = idsFavoritos,
-                priorizarFavoritos = esMinero
+                esMinero = esMinero
             )
         }
 

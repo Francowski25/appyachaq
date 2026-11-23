@@ -18,12 +18,13 @@ data class ResponseMarketPrice(
 )
 
 data class RequestCalculo(
-    @SerializedName("idUser")   val idUser: String,
-    @SerializedName("idPlant")  val idPlant: String,
-    @SerializedName("material") val material: String,
-    @SerializedName("tonelaje") val tonelaje: Double,
-    @SerializedName("leyCu")    val leyCu: Double,
-    @SerializedName("leyAg")    val leyAg: Double,
-    @SerializedName("leyAu")    val leyAu: Double,
-    @SerializedName("adelanto") val adelanto: Double? = null
+    @SerializedName("idUser")      val idUser: String,
+    @SerializedName("idPlant")     val idPlant: String? = null,
+    @SerializedName("idUserPlant") val idUserPlant: String? = null,
+    @SerializedName("material")    val material: String,
+    @SerializedName("tonelaje")    val tonelaje: Double,
+    @SerializedName("leyCu")       val leyCu: Double,
+    @SerializedName("leyAg")       val leyAg: Double,
+    @SerializedName("leyAu")       val leyAu: Double,
+    @SerializedName("adelanto")    val adelanto: Double? = null
 )

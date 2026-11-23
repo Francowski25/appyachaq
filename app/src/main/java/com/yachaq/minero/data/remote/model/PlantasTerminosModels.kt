@@ -1,7 +1,5 @@
 package com.yachaq.minero.data.remote.model
 
-// ================== PLANTAS ==================
-
 data class RequestPlant(
     val name: String,
     val location: String,
@@ -21,8 +19,6 @@ data class ResponsePlant(
     val listMessage: List<String>? = null,
     val type: String? = null
 )
-
-// ================== TÉRMINOS ==================
 
 data class RequestTerms(
     val factorConcentrado: Double,
@@ -51,6 +47,7 @@ data class RequestTerms(
 data class ResponseTerms(
     val idTerm: String? = null,
     val idPlant: String? = null,
+    val plantName: String? = null,
     val factorConcentrado: Double? = null,
     val humedad: Double? = null,
     val merma: Double? = null,
@@ -72,6 +69,7 @@ data class ResponseTerms(
     val trasladoInterno: Double? = null,
     val igvPorcentaje: Double? = null,
     val detraccionPorcentaje: Double? = null,
+    val updatedAt: String? = null,
     val listMessage: List<String>? = null,
     val type: String? = null
 )

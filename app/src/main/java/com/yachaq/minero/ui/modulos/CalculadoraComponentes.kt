@@ -8,8 +8,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
@@ -24,18 +22,27 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.model.ResponseCalculo
-import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.ui.theme.*
 import java.util.Locale
+
+// Planta lista para elegir en la calculadora (del sistema o personal del minero)
+data class PlantaCalculo(
+    val id: String,
+    val nombre: String,
+    val ubicacion: String,
+    val alquiler: Double,
+    val esPersonal: Boolean,
+    val favorita: Boolean
+)
 
 private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
 private fun toneladas(v: Double) = String.format(Locale.US, "%.2f TM", v)
 
-private fun ResponsePlant.alquiler() = String.format(Locale.US, "%.2f", rentalCostPerTM ?: 0.0)
+private fun PlantaCalculo.alquilerTexto() = String.format(Locale.US, "%.2f", alquiler)
 
 // Ubicación y costo de alquiler por TM de una planta
 @Composable
-private fun PlantaMeta(planta: ResponsePlant?, modifier: Modifier = Modifier) {
+private fun PlantaMeta(planta: PlantaCalculo?, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Default.LocationOn,
@@ -45,14 +52,14 @@ private fun PlantaMeta(planta: ResponsePlant?, modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.width(2.dp))
         Text(
-            text = planta?.location ?: "",
+            text = planta?.ubicacion ?: "",
             color = TextoGrisSecundario,
             fontSize = 11.sp,
             maxLines = 1,
             modifier = Modifier.weight(1f, fill = false)
         )
         Text(
-            text = "  •  $ ${planta?.alquiler() ?: "0.00"}/TM",
+            text = "  •  $ ${planta?.alquilerTexto() ?: "0.00"}/TM",
             color = AmarilloMineroBrillante,
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
@@ -61,9 +68,9 @@ private fun PlantaMeta(planta: ResponsePlant?, modifier: Modifier = Modifier) {
     }
 }
 
-// Fila de una planta en la lista: ícono, nombre, ubicación y estrella si es favorita
+// Fila de una planta en la lista: ícono, nombre, ubicación y etiqueta (estrella o PERSONAL)
 @Composable
-private fun ItemPlantaContenido(planta: ResponsePlant, favorita: Boolean) {
+private fun ItemPlantaContenido(planta: PlantaCalculo) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -84,7 +91,7 @@ private fun ItemPlantaContenido(planta: ResponsePlant, favorita: Boolean) {
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = planta.name ?: "",
+                text = planta.nombre,
                 color = TextoBlancoSuave,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
@@ -92,7 +99,14 @@ private fun ItemPlantaContenido(planta: ResponsePlant, favorita: Boolean) {
             )
             PlantaMeta(planta)
         }
-        if (favorita) {
+        if (planta.esPersonal) {
+            Text(
+                "PERSONAL",
+                color = TextoGrisSecundario,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
+        } else if (planta.favorita) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = "Favorita",
@@ -104,9 +118,9 @@ private fun ItemPlantaContenido(planta: ResponsePlant, favorita: Boolean) {
 }
 
 @Composable
-private fun ItemPlantaMenu(planta: ResponsePlant, favorita: Boolean, onClick: () -> Unit) {
+private fun ItemPlantaMenu(planta: PlantaCalculo, onClick: () -> Unit) {
     DropdownMenuItem(
-        text = { ItemPlantaContenido(planta, favorita) },
+        text = { ItemPlantaContenido(planta) },
         onClick = onClick
     )
     HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
@@ -140,31 +154,20 @@ private fun EncabezadoLista(texto: String, conEstrella: Boolean = false) {
     }
 }
 
-// Selector de planta. Con priorizarFavoritos, las favoritas van primero y el resto
-// queda plegado en "Otras plantas". Sin favoritas se muestra la lista completa.
+// Selector de planta: la lista ya viene filtrada según el rol
 @Composable
 fun SeccionPlantaCard(
-    listaPlantas: List<ResponsePlant>,
+    listaPlantas: List<PlantaCalculo>,
     esConfirmado: Boolean,
-    plantaConfirmada: ResponsePlant?,
-    onConfirmar: (ResponsePlant) -> Unit,
+    plantaConfirmada: PlantaCalculo?,
+    onConfirmar: (PlantaCalculo) -> Unit,
     onCambiar: () -> Unit,
-    idsFavoritos: Set<String> = emptySet(),
-    priorizarFavoritos: Boolean = false
+    esMinero: Boolean = false
 ) {
-    fun esFavorita(p: ResponsePlant): Boolean {
-        val id = p.idPlant
-        return id != null && id in idsFavoritos
-    }
-
-    val favoritas = if (priorizarFavoritos) listaPlantas.filter { esFavorita(it) } else emptyList()
-    val otras = if (priorizarFavoritos) listaPlantas.filterNot { esFavorita(it) } else listaPlantas
-
-    var plantaSeleccionadaTemp by remember(listaPlantas, idsFavoritos) {
-        mutableStateOf(favoritas.firstOrNull() ?: listaPlantas.firstOrNull())
+    var plantaSeleccionadaTemp by remember(listaPlantas) {
+        mutableStateOf(listaPlantas.firstOrNull())
     }
     var expanded by remember { mutableStateOf(false) }
-    var mostrarOtras by remember { mutableStateOf(false) }
     var mostrarDialogoCambiar by remember { mutableStateOf(false) }
 
     Card(
@@ -197,14 +200,6 @@ fun SeccionPlantaCard(
             }
 
             if (!esConfirmado) {
-                if (priorizarFavoritos && favoritas.isEmpty()) {
-                    Text(
-                        text = "Aún no tienes plantas favoritas. Márcalas en Mis términos por planta para verlas primero.",
-                        color = FondoNegroAbsoluto.copy(alpha = 0.75f),
-                        fontSize = 11.sp
-                    )
-                }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -226,14 +221,14 @@ fun SeccionPlantaCard(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = plantaSeleccionadaTemp?.name ?: "Seleccionar...",
+                                            text = plantaSeleccionadaTemp?.nombre ?: "Seleccionar...",
                                             color = TextoBlancoSuave,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
                                             modifier = Modifier.weight(1f, fill = false)
                                         )
-                                        if (plantaSeleccionadaTemp?.let { esFavorita(it) } == true) {
+                                        if (plantaSeleccionadaTemp?.favorita == true) {
                                             Spacer(Modifier.width(4.dp))
                                             Icon(
                                                 imageVector = Icons.Default.Star,
@@ -258,54 +253,11 @@ fun SeccionPlantaCard(
                             onDismissRequest = { expanded = false },
                             modifier = Modifier.background(FondoNegroSecundario).fillMaxWidth(0.85f)
                         ) {
-                            if (favoritas.isNotEmpty()) {
-                                EncabezadoLista("MIS FAVORITAS", conEstrella = true)
-                                favoritas.forEach { planta ->
-                                    ItemPlantaMenu(planta, favorita = true) {
-                                        plantaSeleccionadaTemp = planta
-                                        expanded = false
-                                    }
-                                }
-                                if (otras.isNotEmpty()) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "Otras plantas (${otras.size})",
-                                                    color = AmarilloMineroBrillante,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                                Icon(
-                                                    imageVector = if (mostrarOtras) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                                    contentDescription = null,
-                                                    tint = AmarilloMineroBrillante
-                                                )
-                                            }
-                                        },
-                                        onClick = { mostrarOtras = !mostrarOtras }
-                                    )
-                                    HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
-                                    if (mostrarOtras) {
-                                        otras.forEach { planta ->
-                                            ItemPlantaMenu(planta, favorita = false) {
-                                                plantaSeleccionadaTemp = planta
-                                                expanded = false
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                if (priorizarFavoritos) EncabezadoLista("PLANTAS DISPONIBLES")
-                                otras.forEach { planta ->
-                                    ItemPlantaMenu(planta, favorita = false) {
-                                        plantaSeleccionadaTemp = planta
-                                        expanded = false
-                                    }
+                            if (esMinero) EncabezadoLista("MIS PLANTAS")
+                            listaPlantas.forEach { planta ->
+                                ItemPlantaMenu(planta) {
+                                    plantaSeleccionadaTemp = planta
+                                    expanded = false
                                 }
                             }
                         }
@@ -349,14 +301,14 @@ fun SeccionPlantaCard(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = plantaConfirmada?.name ?: "",
+                                        text = plantaConfirmada?.nombre ?: "",
                                         color = TextoBlancoSuave,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
                                         maxLines = 1,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
-                                    if (plantaConfirmada?.let { esFavorita(it) } == true) {
+                                    if (plantaConfirmada?.favorita == true) {
                                         Spacer(Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Default.Star,
@@ -399,15 +351,15 @@ fun SeccionPlantaCard(
                         Surface(shape = RoundedCornerShape(14.dp), color = GrisCampos, border = BorderStroke(1.dp, ColorGrisBorde), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("PLANTA ACTUALMENTE ACTIVA", fontSize = 10.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
-                                Text(planta.name ?: "", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextoBlancoSuave)
+                                Text(planta.nombre, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextoBlancoSuave)
                                 HorizontalDivider(color = ColorGrisBorde)
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("Ubicación:", fontSize = 12.sp, color = TextoGrisSecundario)
-                                    Text(planta.location ?: "", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
+                                    Text(planta.ubicacion, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
                                 }
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("Costo Alquiler:", fontSize = 12.sp, color = TextoGrisSecundario)
-                                    Text("$ ${planta.alquiler()} / TM", fontSize = 14.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
+                                    Text("$ ${planta.alquilerTexto()} / TM", fontSize = 14.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
                                 }
                             }
                         }
@@ -497,7 +449,7 @@ fun SeccionCamposEntrada(
 
 // Resultado del cálculo: planta destino, total a pagar y detalle por bloques
 @Composable
-fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: ResponsePlant?) {
+fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: PlantaCalculo?) {
     val totalAPagar = resultado.totalAPagar ?: 0.0
     val tmns = resultado.tmns ?: 0.0
     val tmHumedas = resultado.tmHumedas ?: 0.0
@@ -571,7 +523,7 @@ fun SeccionResultadosCard(resultado: ResponseCalculo, plantaConfirmada: Response
                     Column(modifier = Modifier.weight(1f)) {
                         Text("PLANTA DESTINO DE PROCESAMIENTO", color = AmarilloMineroBrillante, fontSize = 10.sp, fontWeight = FontWeight.Black)
                         Spacer(Modifier.height(2.dp))
-                        Text(plantaConfirmada?.name ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(plantaConfirmada?.nombre ?: "No especificada", color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         PlantaMeta(plantaConfirmada)
                     }
                 }

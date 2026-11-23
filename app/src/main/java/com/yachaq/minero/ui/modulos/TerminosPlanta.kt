@@ -94,6 +94,7 @@ private fun ResponseUserTerms.toUi() = TerminosUi(
     igvPorcentaje = igvPorcentaje ?: 0.0, detraccionPorcentaje = detraccionPorcentaje ?: 0.0
 )
 
+// Términos de una planta del sistema: globales (admin) o del minero (favoritas)
 @Composable
 fun TerminosPlanta(
     idPlant: String,
@@ -102,74 +103,126 @@ fun TerminosPlanta(
     esAdmin: Boolean = true,
     onDismiss: () -> Unit
 ) {
+    TerminosFormulario(
+        clave = idPlant,
+        titulo = if (esAdmin) "TÉRMINOS GLOBALES DE LA PLANTA" else "MIS TÉRMINOS PERSONALES",
+        nombrePlanta = nombrePlanta,
+        cargar = {
+            try {
+                if (esAdmin) {
+                    val resp = RetrofitClient.termsApi.obtenerTerminos(idPlant)
+                    val body = resp.body()
+                    if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
+                        body.toUi() to null
+                    } else {
+                        null to (body?.listMessage?.firstOrNull() ?: "Error al cargar términos (${resp.code()})")
+                    }
+                } else if (idUser == null) {
+                    null to "Error: ID de usuario no proporcionado."
+                } else {
+                    val resp = RetrofitClient.userTermsApi.listar(idUser)
+                    if (resp.isSuccessful) {
+                        val termino = resp.body().orEmpty().find { it.idPlant == idPlant }
+                        if (termino != null) termino.toUi() to null
+                        else null to "No se encontraron términos para esta planta."
+                    } else {
+                        null to "Error al cargar términos del usuario (${resp.code()})"
+                    }
+                }
+            } catch (e: Exception) {
+                null to "No se pudo conectar: ${e.message}"
+            }
+        },
+        guardar = { nuevo ->
+            try {
+                if (esAdmin) {
+                    val resp = RetrofitClient.termsApi.actualizarTerminos(idPlant, nuevo.toRequestTerms())
+                    val body = resp.body()
+                    if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) null
+                    else body?.listMessage?.firstOrNull() ?: "Error del servidor (${resp.code()})"
+                } else if (idUser == null) {
+                    "Error: ID de usuario no proporcionado."
+                } else {
+                    val resp = RetrofitClient.userTermsApi.guardar(nuevo.toRequestUserTerms(idUser, idPlant))
+                    val body = resp.body()
+                    if (resp.isSuccessful && (body?.type == null || body.type == "SUCCESS")) null
+                    else body?.listMessage?.firstOrNull() ?: "Error al guardar (${resp.code()})"
+                }
+            } catch (e: Exception) {
+                "No se pudo conectar: ${e.message}"
+            }
+        },
+        onDismiss = onDismiss
+    )
+}
+
+// Términos propios de una planta personal del minero (fila de tterms de esa planta)
+@Composable
+fun TerminosPlantaPersonal(
+    idUserPlant: String,
+    nombrePlanta: String,
+    onDismiss: () -> Unit
+) {
+    TerminosFormulario(
+        clave = idUserPlant,
+        titulo = "TÉRMINOS DE MI PLANTA",
+        nombrePlanta = nombrePlanta,
+        cargar = {
+            try {
+                val resp = RetrofitClient.userPlantApi.obtenerTerminos(idUserPlant)
+                val body = resp.body()
+                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
+                    body.toUi() to null
+                } else {
+                    null to (body?.listMessage?.firstOrNull() ?: "Error al cargar términos (${resp.code()})")
+                }
+            } catch (e: Exception) {
+                null to "No se pudo conectar: ${e.message}"
+            }
+        },
+        guardar = { nuevo ->
+            try {
+                val resp = RetrofitClient.userPlantApi.actualizarTerminos(idUserPlant, nuevo.toRequestTerms())
+                val body = resp.body()
+                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) null
+                else body?.listMessage?.firstOrNull() ?: "Error al guardar (${resp.code()})"
+            } catch (e: Exception) {
+                "No se pudo conectar: ${e.message}"
+            }
+        },
+        onDismiss = onDismiss
+    )
+}
+
+// Formulario común: no sabe de dónde vienen los datos, solo usa cargar y guardar.
+// cargar devuelve (términos, error); guardar devuelve el mensaje de error o null si salió bien.
+@Composable
+private fun TerminosFormulario(
+    clave: String,
+    titulo: String,
+    nombrePlanta: String,
+    cargar: suspend () -> Pair<TerminosUi?, String?>,
+    guardar: suspend (TerminosUi) -> String?,
+    onDismiss: () -> Unit
+) {
     var terminos by remember { mutableStateOf<TerminosUi?>(null) }
     var cargando by remember { mutableStateOf(true) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     var recargar by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(idPlant, recargar) {
+    LaunchedEffect(clave, recargar) {
         cargando = true
         errorCarga = null
-        try {
-            if (esAdmin) {
-                val resp = RetrofitClient.termsApi.obtenerTerminos(idPlant)
-                val body = resp.body()
-                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
-                    terminos = body.toUi()
-                } else {
-                    errorCarga = body?.listMessage?.firstOrNull() ?: "Error al cargar términos (${resp.code()})"
-                }
-            } else {
-                if (idUser == null) {
-                    errorCarga = "Error: ID de usuario no proporcionado."
-                    return@LaunchedEffect
-                }
-                val resp = RetrofitClient.userTermsApi.listar(idUser)
-                if (resp.isSuccessful) {
-                    val lista = resp.body().orEmpty()
-                    val terminoPlanta = lista.find { it.idPlant == idPlant }
-                    if (terminoPlanta != null) {
-                        terminos = terminoPlanta.toUi()
-                    } else {
-                        errorCarga = "No se encontraron términos para esta planta."
-                    }
-                } else {
-                    errorCarga = "Error al cargar términos del usuario (${resp.code()})"
-                }
-            }
-        } catch (e: Exception) {
-            errorCarga = "No se pudo conectar: ${e.message}"
-        } finally {
-            cargando = false
-        }
+        val (resultado, fallo) = cargar()
+        if (resultado != null) terminos = resultado else errorCarga = fallo ?: "No se pudieron cargar los términos."
+        cargando = false
     }
 
-    suspend fun guardar(nuevo: TerminosUi): String? {
-        return try {
-            if (esAdmin) {
-                val resp = RetrofitClient.termsApi.actualizarTerminos(idPlant, nuevo.toRequestTerms())
-                val body = resp.body()
-                if (resp.isSuccessful && body != null && (body.type == null || body.type == "SUCCESS")) {
-                    terminos = body.toUi()
-                    null
-                } else {
-                    body?.listMessage?.firstOrNull() ?: "Error del servidor (${resp.code()})"
-                }
-            } else {
-                if (idUser == null) return "Error: ID de usuario no proporcionado."
-                val req = nuevo.toRequestUserTerms(idUser, idPlant)
-                val resp = RetrofitClient.userTermsApi.guardar(req)
-                val body = resp.body()
-                if (resp.isSuccessful && (body?.type == null || body.type == "SUCCESS")) {
-                    terminos = nuevo
-                    null
-                } else {
-                    body?.listMessage?.firstOrNull() ?: "Error al guardar (${resp.code()})"
-                }
-            }
-        } catch (e: Exception) {
-            "No se pudo conectar: ${e.message}"
-        }
+    // Guarda y, si salió bien, actualiza lo que se muestra
+    suspend fun guardarYActualizar(nuevo: TerminosUi): String? {
+        val fallo = guardar(nuevo)
+        if (fallo == null) terminos = nuevo
+        return fallo
     }
 
     Dialog(
@@ -207,7 +260,7 @@ fun TerminosPlanta(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = if (esAdmin) "TÉRMINOS GLOBALES DE LA PLANTA" else "MIS TÉRMINOS PERSONALES",
+                            text = titulo,
                             color = AmarilloMineroBrillante,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black,
@@ -240,7 +293,7 @@ fun TerminosPlanta(
                                 val hu = v["% H2O (Humedad)"]?.toDoubleOrNull()
                                 val me = v["Merma de proceso (%)"]?.toDoubleOrNull()
                                 if (fc == null || hu == null || me == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(factorConcentrado = fc, humedad = hu, merma = me))
+                                else guardarYActualizar(t.copy(factorConcentrado = fc, humedad = hu, merma = me))
                             }
                         )
 
@@ -258,7 +311,7 @@ fun TerminosPlanta(
                                 val la = v["Ley Ag concentrado (oz/tc)"]?.toDoubleOrNull()
                                 val lo = v["Ley Au concentrado (oz/tc)"]?.toDoubleOrNull()
                                 if (lc == null || la == null || lo == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(leyConcentradoCu = lc, leyConcentradoAg = la, leyConcentradoAu = lo))
+                                else guardarYActualizar(t.copy(leyConcentradoCu = lc, leyConcentradoAg = la, leyConcentradoAu = lo))
                             }
                         )
 
@@ -278,7 +331,7 @@ fun TerminosPlanta(
                                 val g = v["Gastos ref Cu (\$/lb)"]?.toDoubleOrNull()
                                 val pr = v["Protección Cu"]?.toDoubleOrNull()
                                 if (p == null || d == null || g == null || pr == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(pagableCu = p, deduccionCu = d, gastosRefCu = g, proteccionCu = pr))
+                                else guardarYActualizar(t.copy(pagableCu = p, deduccionCu = d, gastosRefCu = g, proteccionCu = pr))
                             }
                         )
 
@@ -296,7 +349,7 @@ fun TerminosPlanta(
                                 val d = v["Deducción Ag (gr)"]?.toDoubleOrNull()
                                 val g = v["Gastos ref Ag (\$/oz)"]?.toDoubleOrNull()
                                 if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(pagableAg = p, deduccionAg = d, gastosRefAg = g))
+                                else guardarYActualizar(t.copy(pagableAg = p, deduccionAg = d, gastosRefAg = g))
                             }
                         )
 
@@ -314,7 +367,7 @@ fun TerminosPlanta(
                                 val d = v["Deducción Au (gr)"]?.toDoubleOrNull()
                                 val g = v["Gastos ref Au (\$/oz)"]?.toDoubleOrNull()
                                 if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(pagableAu = p, deduccionAu = d, gastosRefAu = g))
+                                else guardarYActualizar(t.copy(pagableAu = p, deduccionAu = d, gastosRefAu = g))
                             }
                         )
 
@@ -326,7 +379,7 @@ fun TerminosPlanta(
                             onGuardar = { v ->
                                 val m = v["Maquila (\$/TMNS)"]?.toDoubleOrNull()
                                 if (m == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(maquila = m))
+                                else guardarYActualizar(t.copy(maquila = m))
                             }
                         )
 
@@ -342,7 +395,7 @@ fun TerminosPlanta(
                                 val a = v["Análisis (\$)"]?.toDoubleOrNull()
                                 val tr = v["Traslado interno (\$)"]?.toDoubleOrNull()
                                 if (a == null || tr == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(analisis = a, trasladoInterno = tr))
+                                else guardarYActualizar(t.copy(analisis = a, trasladoInterno = tr))
                             }
                         )
 
@@ -358,7 +411,7 @@ fun TerminosPlanta(
                                 val igv = v["IGV Porcentaje (0.18 = 18%)"]?.toDoubleOrNull()
                                 val det = v["Detracción Porcentaje (0.10 = 10%)"]?.toDoubleOrNull()
                                 if (igv == null || det == null) "Ingrese valores numéricos válidos."
-                                else guardar(t.copy(igvPorcentaje = igv, detraccionPorcentaje = det))
+                                else guardarYActualizar(t.copy(igvPorcentaje = igv, detraccionPorcentaje = det))
                             }
                         )
 
