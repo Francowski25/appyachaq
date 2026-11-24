@@ -1,22 +1,29 @@
 package com.yachaq.minero.ui.modulos
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -26,8 +33,12 @@ import com.yachaq.minero.data.remote.model.RequestTerms
 import com.yachaq.minero.data.remote.model.RequestUserTerms
 import com.yachaq.minero.data.remote.model.ResponseTerms
 import com.yachaq.minero.data.remote.model.ResponseUserTerms
+import com.yachaq.minero.ui.auth.componentes.Aparecer
+import com.yachaq.minero.ui.auth.componentes.AuthFondo
+import com.yachaq.minero.ui.auth.componentes.BotonAuth
 import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 
 private data class TerminosUi(
     val factorConcentrado: Double = 0.0,
@@ -93,6 +104,105 @@ private fun ResponseUserTerms.toUi() = TerminosUi(
     maquila = maquila ?: 0.0, analisis = analisis ?: 0.0, trasladoInterno = trasladoInterno ?: 0.0,
     igvPorcentaje = igvPorcentaje ?: 0.0, detraccionPorcentaje = detraccionPorcentaje ?: 0.0
 )
+
+// Definición de bloques: cada campo sabe leerse y escribirse en TerminosUi
+private class CampoDef(
+    val etiqueta: String,
+    val unidad: String = "",
+    val ayuda: String? = null,
+    val maximo: Double? = null,
+    val leer: (TerminosUi) -> Double,
+    val escribir: (TerminosUi, Double) -> TerminosUi
+)
+
+private class BloqueDef(
+    val corto: String,
+    val titulo: String,
+    val descripcion: String,
+    val campos: List<CampoDef>
+)
+
+private val BLOQUES = listOf(
+    BloqueDef(
+        "Concentrado", "Valores del concentrado", "Factor, humedad y merma del concentrado.",
+        listOf(
+            CampoDef("Factor de concentrado", leer = { it.factorConcentrado }, escribir = { t, v -> t.copy(factorConcentrado = v) }),
+            CampoDef("Humedad (H2O)", "%", leer = { it.humedad }, escribir = { t, v -> t.copy(humedad = v) }),
+            CampoDef("Merma de proceso", "%", leer = { it.merma }, escribir = { t, v -> t.copy(merma = v) })
+        )
+    ),
+    BloqueDef(
+        "Leyes", "Leyes del concentrado", "Ley de cobre, plata y oro del concentrado.",
+        listOf(
+            CampoDef("Ley de Cu", "%", leer = { it.leyConcentradoCu }, escribir = { t, v -> t.copy(leyConcentradoCu = v) }),
+            CampoDef("Ley de Ag", "oz/tc", leer = { it.leyConcentradoAg }, escribir = { t, v -> t.copy(leyConcentradoAg = v) }),
+            CampoDef("Ley de Au", "oz/tc", leer = { it.leyConcentradoAu }, escribir = { t, v -> t.copy(leyConcentradoAu = v) })
+        )
+    ),
+    BloqueDef(
+        "Cobre", "Términos: Cobre (Cu)", "Pagable, deducción, gastos de refinación y protección del cobre.",
+        listOf(
+            CampoDef("Pagable Cu", "%", leer = { it.pagableCu }, escribir = { t, v -> t.copy(pagableCu = v) }),
+            CampoDef("Deducción Cu", leer = { it.deduccionCu }, escribir = { t, v -> t.copy(deduccionCu = v) }),
+            CampoDef("Gastos de refinación Cu", "\$/lb", leer = { it.gastosRefCu }, escribir = { t, v -> t.copy(gastosRefCu = v) }),
+            CampoDef("Protección Cu", leer = { it.proteccionCu }, escribir = { t, v -> t.copy(proteccionCu = v) })
+        )
+    ),
+    BloqueDef(
+        "Plata", "Términos: Plata (Ag)", "Pagable, deducción y gastos de refinación de la plata.",
+        listOf(
+            CampoDef("Pagable Ag", "%", leer = { it.pagableAg }, escribir = { t, v -> t.copy(pagableAg = v) }),
+            CampoDef("Deducción Ag", "gr", leer = { it.deduccionAg }, escribir = { t, v -> t.copy(deduccionAg = v) }),
+            CampoDef("Gastos de refinación Ag", "\$/oz", leer = { it.gastosRefAg }, escribir = { t, v -> t.copy(gastosRefAg = v) })
+        )
+    ),
+    BloqueDef(
+        "Oro", "Términos: Oro (Au)", "Pagable, deducción y gastos de refinación del oro.",
+        listOf(
+            CampoDef("Pagable Au", "%", leer = { it.pagableAu }, escribir = { t, v -> t.copy(pagableAu = v) }),
+            CampoDef("Deducción Au", "gr", leer = { it.deduccionAu }, escribir = { t, v -> t.copy(deduccionAu = v) }),
+            CampoDef("Gastos de refinación Au", "\$/oz", leer = { it.gastosRefAu }, escribir = { t, v -> t.copy(gastosRefAu = v) })
+        )
+    ),
+    BloqueDef(
+        "Maquila", "Maquila", "Costo de maquila por tonelada métrica neta seca.",
+        listOf(
+            CampoDef("Maquila", "\$/TMNS", leer = { it.maquila }, escribir = { t, v -> t.copy(maquila = v) })
+        )
+    ),
+    BloqueDef(
+        "Servicios", "Servicios operativos", "Análisis y traslado interno.",
+        listOf(
+            CampoDef("Análisis", "\$", leer = { it.analisis }, escribir = { t, v -> t.copy(analisis = v) }),
+            CampoDef("Traslado interno", "\$", leer = { it.trasladoInterno }, escribir = { t, v -> t.copy(trasladoInterno = v) })
+        )
+    ),
+    BloqueDef(
+        "Impuestos", "Impuestos y detracciones", "IGV y detracción, expresados como fracción.",
+        listOf(
+            CampoDef(
+                "IGV", ayuda = "Fracción: 0.18 equivale a 18 %", maximo = 1.0,
+                leer = { it.igvPorcentaje }, escribir = { t, v -> t.copy(igvPorcentaje = v) }
+            ),
+            CampoDef(
+                "Detracción", ayuda = "Fracción: 0.10 equivale a 10 %", maximo = 1.0,
+                leer = { it.detraccionPorcentaje }, escribir = { t, v -> t.copy(detraccionPorcentaje = v) }
+            )
+        )
+    )
+)
+
+// Muestra 85.0 como "85" y 0.18 como "0.18"
+private fun num(v: Double): String = BigDecimal.valueOf(v).stripTrailingZeros().toPlainString()
+
+// Verificación de un campo: mensaje de error o null si es válido
+private fun CampoDef.error(texto: String): String? {
+    val v = texto.toDoubleOrNull() ?: return "Ingresa un número válido."
+    if (v < 0) return "No puede ser negativo."
+    val tope = maximo
+    if (tope != null && v > tope) return "No puede superar ${num(tope)}."
+    return null
+}
 
 // Términos de una planta del sistema: globales (admin) o del minero (favoritas)
 @Composable
@@ -194,7 +304,7 @@ fun TerminosPlantaPersonal(
     )
 }
 
-// Formulario común: no sabe de dónde vienen los datos, solo usa cargar y guardar.
+// Contenedor común: carga los términos y muestra la pasarela. No sabe de dónde vienen los datos.
 // cargar devuelve (términos, error); guardar devuelve el mensaje de error o null si salió bien.
 @Composable
 private fun TerminosFormulario(
@@ -218,411 +328,394 @@ private fun TerminosFormulario(
         cargando = false
     }
 
-    // Guarda y, si salió bien, actualiza lo que se muestra
-    suspend fun guardarYActualizar(nuevo: TerminosUi): String? {
-        val fallo = guardar(nuevo)
-        if (fallo == null) terminos = nuevo
-        return fallo
-    }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = FondoNegroAbsoluto,
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, ColorGrisBorde)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Mismo fondo degradado con resplandor dorado de las pantallas de auth
+            AuthFondo {
                 val t = terminos
                 when {
-                    cargando -> CircularProgressIndicator(
-                        color = AmarilloMineroBrillante,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
 
                     errorCarga != null -> Column(
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text(errorCarga.orEmpty(), color = ErrorRojo, fontSize = 13.sp)
-                        TextButton(onClick = { recargar++ }) {
-                            Text("REINTENTAR", color = AmarilloMineroBrillante)
+                        MensajeError(errorCarga.orEmpty())
+                        Spacer(Modifier.height(16.dp))
+                        BotonAuth(texto = "REINTENTAR", cargando = false, onClick = { recargar++ })
+                        TextButton(onClick = onDismiss) {
+                            Text("CERRAR", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    t != null -> Column(
-                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = titulo,
-                            color = AmarilloMineroBrillante,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.2.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = nombrePlanta,
-                            color = TextoBlancoSuave,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Parámetros técnicos de comercialización y liquidación minera.",
-                            color = TextoGrisSecundario,
-                            fontSize = 12.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "1. Valores del Concentrado",
-                            campos = listOf(
-                                "Factor de concentrado" to t.factorConcentrado.toString(),
-                                "% H2O (Humedad)" to t.humedad.toString(),
-                                "Merma de proceso (%)" to t.merma.toString()
-                            ),
-                            onGuardar = { v ->
-                                val fc = v["Factor de concentrado"]?.toDoubleOrNull()
-                                val hu = v["% H2O (Humedad)"]?.toDoubleOrNull()
-                                val me = v["Merma de proceso (%)"]?.toDoubleOrNull()
-                                if (fc == null || hu == null || me == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(factorConcentrado = fc, humedad = hu, merma = me))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "2. Leyes del Concentrado",
-                            campos = listOf(
-                                "Ley Cu concentrado (%)" to t.leyConcentradoCu.toString(),
-                                "Ley Ag concentrado (oz/tc)" to t.leyConcentradoAg.toString(),
-                                "Ley Au concentrado (oz/tc)" to t.leyConcentradoAu.toString()
-                            ),
-                            onGuardar = { v ->
-                                val lc = v["Ley Cu concentrado (%)"]?.toDoubleOrNull()
-                                val la = v["Ley Ag concentrado (oz/tc)"]?.toDoubleOrNull()
-                                val lo = v["Ley Au concentrado (oz/tc)"]?.toDoubleOrNull()
-                                if (lc == null || la == null || lo == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(leyConcentradoCu = lc, leyConcentradoAg = la, leyConcentradoAu = lo))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "3. Términos: Cobre (Cu)",
-                            campos = listOf(
-                                "% Pagable Cu" to t.pagableCu.toString(),
-                                "Deducción Cu" to t.deduccionCu.toString(),
-                                "Gastos ref Cu (\$/lb)" to t.gastosRefCu.toString(),
-                                "Protección Cu" to t.proteccionCu.toString()
-                            ),
-                            onGuardar = { v ->
-                                val p = v["% Pagable Cu"]?.toDoubleOrNull()
-                                val d = v["Deducción Cu"]?.toDoubleOrNull()
-                                val g = v["Gastos ref Cu (\$/lb)"]?.toDoubleOrNull()
-                                val pr = v["Protección Cu"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null || pr == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(pagableCu = p, deduccionCu = d, gastosRefCu = g, proteccionCu = pr))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "4. Términos: Plata (Ag)",
-                            campos = listOf(
-                                "% Pagable Ag" to t.pagableAg.toString(),
-                                "Deducción Ag (gr)" to t.deduccionAg.toString(),
-                                "Gastos ref Ag (\$/oz)" to t.gastosRefAg.toString()
-                            ),
-                            onGuardar = { v ->
-                                val p = v["% Pagable Ag"]?.toDoubleOrNull()
-                                val d = v["Deducción Ag (gr)"]?.toDoubleOrNull()
-                                val g = v["Gastos ref Ag (\$/oz)"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(pagableAg = p, deduccionAg = d, gastosRefAg = g))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "5. Términos: Oro (Au)",
-                            campos = listOf(
-                                "% Pagable Au" to t.pagableAu.toString(),
-                                "Deducción Au (gr)" to t.deduccionAu.toString(),
-                                "Gastos ref Au (\$/oz)" to t.gastosRefAu.toString()
-                            ),
-                            onGuardar = { v ->
-                                val p = v["% Pagable Au"]?.toDoubleOrNull()
-                                val d = v["Deducción Au (gr)"]?.toDoubleOrNull()
-                                val g = v["Gastos ref Au (\$/oz)"]?.toDoubleOrNull()
-                                if (p == null || d == null || g == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(pagableAu = p, deduccionAu = d, gastosRefAu = g))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "6. Maquila",
-                            campos = listOf("Maquila (\$/TMNS)" to t.maquila.toString()),
-                            onGuardar = { v ->
-                                val m = v["Maquila (\$/TMNS)"]?.toDoubleOrNull()
-                                if (m == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(maquila = m))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "7. Servicios Operativos",
-                            campos = listOf(
-                                "Análisis (\$)" to t.analisis.toString(),
-                                "Traslado interno (\$)" to t.trasladoInterno.toString()
-                            ),
-                            onGuardar = { v ->
-                                val a = v["Análisis (\$)"]?.toDoubleOrNull()
-                                val tr = v["Traslado interno (\$)"]?.toDoubleOrNull()
-                                if (a == null || tr == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(analisis = a, trasladoInterno = tr))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TarjetaConfiguracionSeccion(
-                            titulo = "8. Impuestos y Detracciones",
-                            campos = listOf(
-                                "IGV Porcentaje (0.18 = 18%)" to t.igvPorcentaje.toString(),
-                                "Detracción Porcentaje (0.10 = 10%)" to t.detraccionPorcentaje.toString()
-                            ),
-                            onGuardar = { v ->
-                                val igv = v["IGV Porcentaje (0.18 = 18%)"]?.toDoubleOrNull()
-                                val det = v["Detracción Porcentaje (0.10 = 10%)"]?.toDoubleOrNull()
-                                if (igv == null || det == null) "Ingrese valores numéricos válidos."
-                                else guardarYActualizar(t.copy(igvPorcentaje = igv, detraccionPorcentaje = det))
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                }
-
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TextoGrisSecundario)
+                    t != null -> AsistenteTerminos(
+                        titulo = titulo,
+                        nombrePlanta = nombrePlanta,
+                        inicial = t,
+                        guardar = guardar,
+                        onDismiss = onDismiss
+                    )
                 }
             }
         }
     }
 }
 
+// Pasarela: un bloque por paso; cada bloque se verifica y se guarda antes de avanzar
 @Composable
-private fun TarjetaConfiguracionSeccion(
+private fun AsistenteTerminos(
     titulo: String,
-    campos: List<Pair<String, String>>,
-    onGuardar: suspend (Map<String, String>) -> String?
+    nombrePlanta: String,
+    inicial: TerminosUi,
+    guardar: suspend (TerminosUi) -> String?,
+    onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var enModoEdicion by remember { mutableStateOf(false) }
-    var mostrarConfirmacion by remember { mutableStateOf(false) }
+    var actual by remember { mutableStateOf(inicial) }          // lo último guardado en el servidor
+    var paso by remember { mutableIntStateOf(0) }                // BLOQUES.size = resumen final
     var guardando by remember { mutableStateOf(false) }
-    var errorMensaje by remember { mutableStateOf<String?>(null) }
-
-    val estadoCampos = remember(campos) {
+    var errorBloque by remember { mutableStateOf<String?>(null) }
+    val guardados = remember { mutableStateListOf<Int>() }
+    val textos = remember {
         mutableStateMapOf<String, String>().apply {
-            campos.forEach { put(it.first, it.second) }
+            BLOQUES.forEach { b -> b.campos.forEach { put(it.etiqueta, num(it.leer(inicial))) } }
         }
     }
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, if (enModoEdicion) AmarilloMineroBrillante else ColorGrisBorde),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    val total = BLOQUES.size
+    val enResumen = paso == total
+
+    fun cambiado(c: CampoDef): Boolean {
+        val v = textos[c.etiqueta]?.toDoubleOrNull() ?: return false
+        return v != c.leer(actual)
+    }
+
+    fun irA(i: Int) {
+        if (!guardando) {
+            errorBloque = null
+            paso = i
+        }
+    }
+
+    fun continuar() {
+        val indice = paso
+        val bloque = BLOQUES[indice]
+        if (bloque.campos.any { it.error(textos[it.etiqueta].orEmpty()) != null }) return
+        if (bloque.campos.none { cambiado(it) }) {
+            errorBloque = null
+            paso = indice + 1
+            return
+        }
+        scope.launch {
+            guardando = true
+            errorBloque = null
+            var nuevo = actual
+            bloque.campos.forEach { c -> nuevo = c.escribir(nuevo, textos.getValue(c.etiqueta).toDouble()) }
+            val fallo = guardar(nuevo)
+            guardando = false
+            if (fallo == null) {
+                actual = nuevo
+                if (indice !in guardados) guardados.add(indice)
+                bloque.campos.forEach { textos[it.etiqueta] = num(it.leer(nuevo)) }
+                paso = indice + 1
+            } else {
+                errorBloque = fallo
+            }
+        }
+    }
+
+    val bloqueActual = BLOQUES.getOrNull(paso)
+    val bloqueValido = bloqueActual?.campos?.all { it.error(textos[it.etiqueta].orEmpty()) == null } ?: true
+    val bloqueConCambios = bloqueActual?.campos?.any { cambiado(it) } ?: false
+
+    Column(modifier = Modifier.fillMaxSize().imePadding()) {
+        // Encabezado
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    titulo,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    nombrePlanta,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+            IconButton(onClick = onDismiss, enabled = !guardando) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        // Progreso y navegación entre bloques
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            LinearProgressIndicator(
+                progress = { paso / total.toFloat() },
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = ColorGrisBorde,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+            )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                BLOQUES.forEachIndexed { i, b ->
+                    ChipBloque(
+                        numero = i + 1,
+                        texto = b.corto,
+                        actual = i == paso,
+                        hecho = i in guardados,
+                        onClick = { irA(i) }
+                    )
+                }
+                ChipBloque(
+                    numero = total + 1,
+                    texto = "Resumen",
+                    actual = enResumen,
+                    hecho = false,
+                    onClick = { irA(total) }
+                )
+            }
+        }
+
+        // Contenido del paso
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Crossfade(targetState = paso, label = "bloque") { p ->
+                if (p < total) {
+                    val b = BLOQUES[p]
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "BLOQUE ${p + 1} DE $total",
+                            color = TextoGrisSecundario,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                        TarjetaPaso(numero = p + 1, titulo = b.titulo.uppercase()) {
+                            Text(b.descripcion, color = TextoGrisSecundario, fontSize = 12.sp)
+                            b.campos.forEachIndexed { i, c ->
+                                val texto = textos[c.etiqueta].orEmpty()
+                                val err = c.error(texto)
+                                CampoNumero(
+                                    valor = texto,
+                                    onCambio = {
+                                        textos[c.etiqueta] = it
+                                        errorBloque = null
+                                    },
+                                    etiqueta = c.etiqueta,
+                                    unidad = c.unidad,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    ultimo = i == b.campos.lastIndex,
+                                    error = err,
+                                    ayuda = when {
+                                        cambiado(c) -> "Modificado · antes: ${num(c.leer(actual))}"
+                                        else -> c.ayuda
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    ResumenFinal(actual = actual, guardados = guardados, onIrA = { irA(it) })
+                }
+            }
+
+            errorBloque?.let { MensajeError(it) }
+        }
+
+        // Barra inferior de acciones
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = { if (paso == 0) onDismiss() else irA(paso - 1) },
+                enabled = !guardando,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, ColorGrisBorde),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.weight(1f).height(54.dp)
             ) {
                 Text(
-                    text = titulo,
-                    color = AmarilloMineroBrillante,
-                    fontSize = 14.sp,
+                    if (paso == 0) "CERRAR" else "ATRÁS",
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 1.sp
                 )
-
-                if (!enModoEdicion) {
-                    IconButton(onClick = { enModoEdicion = true }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar sección", tint = AmarilloMineroBrillante)
-                    }
-                }
             }
 
-            HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+            BotonAuth(
+                texto = when {
+                    enResumen -> "FINALIZAR"
+                    bloqueConCambios -> "GUARDAR"
+                    else -> "CONTINUAR"
+                },
+                cargando = guardando,
+                onClick = { if (enResumen) onDismiss() else continuar() },
+                enabled = bloqueValido,
+                modifier = Modifier.weight(1.6f)
+            )
+        }
+    }
+}
 
-            campos.forEach { (etiqueta, _) ->
-                val valorActual = estadoCampos[etiqueta] ?: ""
+// Insignia numérica en degradado dorado (la misma de TarjetaPaso)
+@Composable
+private fun Insignia(numero: Int, tamano: Dp = 24.dp) {
+    Box(
+        modifier = Modifier
+            .size(tamano)
+            .background(Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(numero.toString(), color = FondoNegroAbsoluto, fontSize = 11.sp, fontWeight = FontWeight.Black)
+    }
+}
 
-                if (enModoEdicion) {
-                    OutlinedTextField(
-                        value = valorActual,
-                        onValueChange = {
-                            estadoCampos[etiqueta] = it.replace(',', '.')
-                            errorMensaje = null
-                        },
-                        label = { Text(etiqueta) },
-                        enabled = !guardando,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = GrisCampos,
-                            unfocusedContainerColor = GrisCampos,
-                            focusedBorderColor = AmarilloMineroBrillante,
-                            unfocusedBorderColor = ColorGrisBorde,
-                            focusedLabelColor = AmarilloMineroBrillante,
-                            unfocusedLabelColor = TextoGrisSecundario,
-                            focusedTextColor = TextoBlancoSuave,
-                            unfocusedTextColor = TextoBlancoSuave
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = etiqueta, color = TextoGrisSecundario, fontSize = 13.sp)
-                        Text(text = valorActual, color = TextoBlancoSuave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                }
+// Etiqueta del paso: número, check si ya se guardó, degradado dorado si es el actual
+@Composable
+private fun ChipBloque(numero: Int, texto: String, actual: Boolean, hecho: Boolean, onClick: () -> Unit) {
+    val forma = RoundedCornerShape(20.dp)
+    val fondo = if (actual) Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)) else SolidColor(GrisCampos)
+    Row(
+        modifier = Modifier
+            .clip(forma)
+            .background(fondo)
+            .border(1.dp, if (actual || hecho) AmarilloMineroBrillante else Color.Transparent, forma)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .background(
+                    if (actual) FondoNegroAbsoluto else if (hecho) AmarilloMineroBrillante else ColorGrisBorde,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (hecho && !actual) {
+                Icon(Icons.Default.Check, null, tint = FondoNegroAbsoluto, modifier = Modifier.size(12.dp))
+            } else {
+                Text(
+                    numero.toString(),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    color = if (actual) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurface
+                )
             }
+        }
+        Text(
+            texto,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (actual) FondoNegroAbsoluto else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
-            errorMensaje?.let {
-                Text(it, color = ErrorRojo, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-
-            if (enModoEdicion) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+// Último paso: todos los términos guardados, agrupados por bloque; tocar uno abre ese bloque
+@Composable
+private fun ResumenFinal(actual: TerminosUi, guardados: List<Int>, onIrA: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(start = 4.dp)) {
+            Text(
+                "RESUMEN",
+                color = TextoGrisSecundario,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Text(
+                if (guardados.isEmpty()) "No hiciste cambios en esta sesión."
+                else "${guardados.size} bloque${if (guardados.size == 1) "" else "s"} actualizado${if (guardados.size == 1) "" else "s"}.",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        BLOQUES.forEachIndexed { i, b ->
+            Aparecer(retardoMs = i * 70L) {
+                Surface(
+                    onClick = { onIrA(i) },
+                    shape = RoundedCornerShape(20.dp),
+                    color = FondoNegroSecundario,
+                    border = BorderStroke(
+                        1.dp,
+                        if (i in guardados) AmarilloMineroBrillante.copy(alpha = 0.6f) else ColorGrisBorde
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            campos.forEach { estadoCampos[it.first] = it.second }
-                            errorMensaje = null
-                            enModoEdicion = false
-                        },
-                        enabled = !guardando,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextoGrisSecundario),
-                        border = BorderStroke(1.dp, ColorGrisBorde),
-                        modifier = Modifier.weight(1f).height(42.dp)
-                    ) {
-                        Text("Cancelar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-
-                    Button(
-                        onClick = { mostrarConfirmacion = true },
-                        enabled = !guardando,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AmarilloMineroBrillante,
-                            contentColor = FondoNegroAbsoluto
-                        ),
-                        modifier = Modifier.weight(1f).height(42.dp)
-                    ) {
-                        if (guardando) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = FondoNegroAbsoluto,
-                                strokeWidth = 2.dp
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Insignia(i + 1)
+                            Text(
+                                b.titulo,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
                             )
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Guardar", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                            if (i in guardados) {
+                                Text(
+                                    "ACTUALIZADO",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                            }
+                        }
+                        b.campos.forEach { c ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(c.etiqueta, color = TextoGrisSecundario, fontSize = 12.sp)
+                                Text(
+                                    "${num(c.leer(actual))} ${c.unidad}".trim(),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    if (mostrarConfirmacion) {
-        AlertDialog(
-            onDismissRequest = { mostrarConfirmacion = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = FondoNegroSecundario,
-            icon = {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = AmarilloMineroBrillante, modifier = Modifier.size(32.dp))
-            },
-            title = {
-                Text("Confirmar Modificación", fontWeight = FontWeight.Black, fontSize = 18.sp, color = AmarilloMineroBrillante)
-            },
-            text = {
-                Text(
-                    text = "¿Desea aplicar y guardar las modificaciones en la sección '$titulo'?",
-                    fontSize = 13.sp,
-                    color = TextoGrisSecundario
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarConfirmacion = false
-                        scope.launch {
-                            guardando = true
-                            val fallo = onGuardar(estadoCampos.toMap())
-                            guardando = false
-                            if (fallo == null) {
-                                errorMensaje = null
-                                enModoEdicion = false
-                            } else {
-                                errorMensaje = fallo
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Sí, Guardar", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarConfirmacion = false }) {
-                    Text("Cancelar", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
-                }
-            }
-        )
     }
 }

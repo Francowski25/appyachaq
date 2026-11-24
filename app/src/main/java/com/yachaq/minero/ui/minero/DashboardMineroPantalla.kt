@@ -42,11 +42,11 @@ fun DashboardMineroPantalla(
                 .fillMaxSize()
         ) {
             when (tabSeleccionada) {
-                0 -> CalculadoraPantalla()
+                0 -> CalculadoraPantalla(onIrATerminos = { tabSeleccionada = 6 })
                 1 -> PlantaPantalla()
                 2 -> HistorialPantalla()
                 6 -> MisTerminosPantalla(idUser = usuario.idUser ?: "")
-                else -> CalculadoraPantalla()
+                else -> CalculadoraPantalla(onIrATerminos = { tabSeleccionada = 6 })
             }
         }
     }

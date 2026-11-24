@@ -1,22 +1,22 @@
 package com.yachaq.minero.ui.modulos
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +27,7 @@ import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.data.remote.model.ResponseUserPlant
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -44,89 +45,11 @@ private suspend fun obtenerIdsFavoritos(idUser: String): Set<String> {
         .toSet()
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CampoNumero(
-    valor: String,
-    onCambio: (String) -> Unit,
-    etiqueta: String,
-    modifier: Modifier = Modifier,
-    ultimo: Boolean = false
-) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = onCambio,
-        label = { Text(etiqueta, fontSize = 12.sp) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = if (ultimo) ImeAction.Done else ImeAction.Next
-        ),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos,
-            unfocusedContainerColor = GrisCampos,
-            focusedBorderColor = AmarilloMineroBrillante,
-            unfocusedBorderColor = ColorGrisBorde,
-            focusedLabelColor = AmarilloMineroBrillante,
-            unfocusedLabelColor = TextoGrisSecundario,
-            focusedTextColor = TextoBlancoSuave,
-            unfocusedTextColor = TextoBlancoSuave,
-            cursorColor = AmarilloMineroBrillante
-        ),
-        shape = RoundedCornerShape(14.dp),
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun EtiquetaSeccion(texto: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(14.dp)
-                .background(AmarilloMineroBrillante, RoundedCornerShape(2.dp))
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = texto,
-            color = TextoGrisSecundario,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
-        )
-    }
-}
-
-@Composable
-private fun SeccionCamposLiquidacion(
-    tonelaje: String, onTonelaje: (String) -> Unit,
-    leyCu: String, onLeyCu: (String) -> Unit,
-    leyAg: String, onLeyAg: (String) -> Unit,
-    leyAu: String, onLeyAu: (String) -> Unit,
-    error: String?
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        CampoNumero(tonelaje, onTonelaje, "Tonelaje (TM)", Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        CampoNumero(leyCu, onLeyCu, "Ley Cu % (opcional)", Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        CampoNumero(leyAg, onLeyAg, "Ley Ag oz/tm (opcional)", Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        CampoNumero(leyAu, onLeyAu, "Ley Au oz/tm (opcional)", Modifier.fillMaxWidth(), ultimo = true)
-
-        error?.let {
-            Spacer(Modifier.height(12.dp))
-            Text(it, color = ErrorRojo, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-fun CalculadoraPantalla() {
+fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
     val usuarioActual = SesionUsuario.usuarioActual
     // Minero: cualquier usuario con sesión que no sea administrador
     val esMinero = usuarioActual != null && !SesionUsuario.esAdmin()
@@ -138,8 +61,8 @@ fun CalculadoraPantalla() {
     var errorPlantas by remember { mutableStateOf<String?>(null) }
     var recargarPlantas by remember { mutableIntStateOf(0) }
 
+    // Elegir una planta la confirma: ya no hay estado "esConfirmado"
     var plantaConfirmada by remember { mutableStateOf<PlantaCalculo?>(null) }
-    var esConfirmado by remember { mutableStateOf(false) }
 
     var tonelaje by remember { mutableStateOf("") }
     var leyCu by remember { mutableStateOf("") }
@@ -149,8 +72,9 @@ fun CalculadoraPantalla() {
     var error by remember { mutableStateOf<String?>(null) }
     var resultado by remember { mutableStateOf<ResponseCalculo?>(null) }
     var calculando by remember { mutableStateOf(false) }
-
     var mostrarDialogoPremium by remember { mutableStateOf(false) }
+
+    val resultadoRequester = remember { BringIntoViewRequester() }
 
     LaunchedEffect(recargarPlantas) {
         cargandoPlantas = true
@@ -189,6 +113,14 @@ fun CalculadoraPantalla() {
             }
         }
         cargandoPlantas = false
+    }
+
+    // Al aparecer el resultado, la pantalla baja hasta él
+    LaunchedEffect(resultado) {
+        if (resultado != null) {
+            delay(80)
+            resultadoRequester.bringIntoView()
+        }
     }
 
     // Minero: sus favoritas del sistema + sus plantas personales. Admin: todas las del sistema.
@@ -235,6 +167,7 @@ fun CalculadoraPantalla() {
     }
 
     fun calcular() {
+        focus.clearFocus()
         if (!SesionUsuario.puedeRealizarConsulta()) {
             mostrarDialogoPremium = true
             return
@@ -245,18 +178,16 @@ fun CalculadoraPantalla() {
         val lAg = parseOpcional(leyAg)
         val lAu = parseOpcional(leyAu)
         val planta = plantaConfirmada
-        val idPlant = planta?.id
         val idUser = usuarioActual?.idUser
 
         when {
             idUser.isNullOrBlank() -> error = "Sesión no válida. Vuelva a iniciar sesión."
-            !esConfirmado -> error = "Por favor seleccione y confirme una planta procesadora primero."
-            idPlant.isNullOrBlank() -> error = "La planta seleccionada no es válida."
+            planta == null || planta.id.isBlank() -> error = "Primero elige una planta procesadora."
             t == null || lCu == null || lAg == null || lAu == null ->
-                error = "Por favor complete los campos con números válidos."
+                error = "Completa los campos con números válidos."
             t <= 0 -> error = "El tonelaje debe ser mayor que cero."
             lCu < 0 || lAg < 0 || lAu < 0 -> error = "Los valores no pueden ser negativos."
-            lCu <= 0 && lAg <= 0 && lAu <= 0 -> error = "Ingrese la ley de al menos un metal."
+            lCu <= 0 && lAg <= 0 && lAu <= 0 -> error = "Ingresa la ley de al menos un metal."
             else -> scope.launch {
                 calculando = true
                 error = null
@@ -265,8 +196,8 @@ fun CalculadoraPantalla() {
                     val resp = RetrofitClient.calculationApi.calcular(
                         RequestCalculo(
                             idUser = idUser,
-                            idPlant = if (planta.esPersonal) null else idPlant,
-                            idUserPlant = if (planta.esPersonal) idPlant else null,
+                            idPlant = if (planta.esPersonal) null else planta.id,
+                            idUserPlant = if (planta.esPersonal) planta.id else null,
                             material = "Cobre + Plata + Oro",
                             tonelaje = t,
                             leyCu = lCu,
@@ -292,110 +223,164 @@ fun CalculadoraPantalla() {
         }
     }
 
+    // Cualquier cambio en los datos invalida el resultado anterior
+    fun alEditar(actualizar: () -> Unit) {
+        actualizar()
+        resultado = null
+        error = null
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Encabezado
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Calculate,
-                contentDescription = null,
-                tint = AmarilloMineroBrillante,
-                modifier = Modifier.size(26.dp)
-            )
-            Text(
-                text = "CALCULADORA DE LIQUIDACIÓN",
-                color = AmarilloMineroBrillante,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.2.sp
-            )
-        }
-
-        if (usuarioActual?.role == "minero" && !SesionUsuario.esPremium()) {
-            Spacer(Modifier.height(10.dp))
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = GrisCampos,
-                border = BorderStroke(1.dp, ColorGrisBorde)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Calculadora",
+                    color = AmarilloMineroBrillante,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Text("Liquidación de concentrado", color = TextoGrisSecundario, fontSize = 13.sp)
+            }
+            if (usuarioActual?.role == "minero" && !SesionUsuario.esPremium()) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = GrisCampos,
+                    border = BorderStroke(1.dp, ColorGrisBorde)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = AmarilloMineroBrillante,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "Consultas gratuitas restantes: ${SesionUsuario.consultasRestantes()}",
-                        color = TextoGrisSecundario,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = AmarilloMineroBrillante,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "${SesionUsuario.consultasRestantes()} gratis",
+                            color = TextoGrisSecundario,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
-
-        Spacer(Modifier.height(20.dp))
 
         PreciosMercadoCard()
 
-        Spacer(Modifier.height(24.dp))
-
-        EtiquetaSeccion("PLANTA PROCESADORA")
-        Spacer(Modifier.height(10.dp))
-
-        when {
-            cargandoPlantas -> CircularProgressIndicator(
-                color = AmarilloMineroBrillante,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(28.dp)
-            )
-            errorPlantas != null && plantasCalculo.isEmpty() -> {
-                Text(errorPlantas.orEmpty(), color = ErrorRojo, fontSize = 12.sp)
-                TextButton(onClick = { recargarPlantas++ }) {
-                    Text("REINTENTAR", color = AmarilloMineroBrillante)
+        // Paso 1: planta
+        TarjetaPaso(numero = 1, titulo = "PLANTA PROCESADORA") {
+            when {
+                cargandoPlantas -> Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = AmarilloMineroBrillante,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text("Cargando plantas…", color = TextoGrisSecundario, fontSize = 13.sp)
                 }
+                errorPlantas != null && plantasCalculo.isEmpty() -> {
+                    MensajeError(errorPlantas.orEmpty())
+                    OutlinedButton(
+                        onClick = { recargarPlantas++ },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
+                        border = BorderStroke(1.dp, AmarilloMineroBrillante),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Reintentar", fontWeight = FontWeight.Bold) }
+                }
+                // El botón solo existe para el minero; el admin solo ve el texto
+                plantasCalculo.isEmpty() -> if (esMinero) {
+                    Text(
+                        "Aún no tienes plantas. Añade una para poder calcular.",
+                        color = TextoGrisSecundario,
+                        fontSize = 13.sp
+                    )
+                    Button(
+                        onClick = onIrATerminos,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AmarilloMineroBrillante,
+                            contentColor = FondoNegroAbsoluto
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Ir a Mi Planta y Términos", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text("No hay plantas registradas.", color = TextoGrisSecundario, fontSize = 13.sp)
+                }
+                else -> SelectorPlanta(
+                    plantas = plantasCalculo,
+                    seleccionada = plantaConfirmada,
+                    onSeleccionar = { planta ->
+                        // Al cambiar de planta se reinicia el resultado
+                        if (planta != plantaConfirmada) resultado = null
+                        plantaConfirmada = planta
+                        error = null
+                    }
+                )
             }
-            plantasCalculo.isEmpty() -> Text(
-                if (esMinero) "Aún no tienes plantas. Añádelas en Mis términos por planta."
-                else "No hay plantas registradas.",
-                color = TextoGrisSecundario,
-                fontSize = 13.sp
+        }
+
+        // Paso 2: datos del material
+        TarjetaPaso(numero = 2, titulo = "DATOS DEL MATERIAL") {
+            CampoNumero(
+                valor = tonelaje,
+                onCambio = { alEditar { tonelaje = it } },
+                etiqueta = "Tonelaje",
+                unidad = "TM",
+                modifier = Modifier.fillMaxWidth()
             )
-            else -> SeccionPlantaCard(
-                listaPlantas = plantasCalculo,
-                esConfirmado = esConfirmado,
-                plantaConfirmada = plantaConfirmada,
-                onConfirmar = { planta -> plantaConfirmada = planta; esConfirmado = true; error = null },
-                onCambiar = { esConfirmado = false; plantaConfirmada = null; resultado = null },
-                esMinero = esMinero
+            CampoNumero(
+                valor = leyCu,
+                onCambio = { alEditar { leyCu = it } },
+                etiqueta = "Ley de Cobre (Cu)",
+                unidad = "%",
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CampoNumero(
+                    valor = leyAg,
+                    onCambio = { alEditar { leyAg = it } },
+                    etiqueta = "Ley de Plata (Ag)",
+                    unidad = "oz/tm",
+                    modifier = Modifier.weight(1f)
+                )
+                CampoNumero(
+                    valor = leyAu,
+                    onCambio = { alEditar { leyAu = it } },
+                    etiqueta = "Ley de Oro (Au)",
+                    unidad = "oz/tm",
+                    modifier = Modifier.weight(1f),
+                    ultimo = true
+                )
+            }
+            Text(
+                "Las leyes son opcionales, pero debes ingresar al menos una.",
+                color = TextoGrisSecundario,
+                fontSize = 11.sp
             )
         }
 
-        Spacer(Modifier.height(24.dp))
-        EtiquetaSeccion("DATOS DEL MATERIAL")
-        Spacer(Modifier.height(10.dp))
-
-        SeccionCamposLiquidacion(
-            tonelaje = tonelaje, onTonelaje = { tonelaje = it; resultado = null; error = null },
-            leyCu = leyCu, onLeyCu = { leyCu = it; resultado = null; error = null },
-            leyAg = leyAg, onLeyAg = { leyAg = it; resultado = null; error = null },
-            leyAu = leyAu, onLeyAu = { leyAu = it; resultado = null; error = null },
-            error = error
-        )
-
-        Spacer(Modifier.height(24.dp))
+        error?.let { MensajeError(it) }
 
         Button(
             onClick = { calcular() },
@@ -405,7 +390,9 @@ fun CalculadoraPantalla() {
                 contentColor = FondoNegroAbsoluto
             ),
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(54.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
         ) {
             if (calculando) {
                 CircularProgressIndicator(
@@ -418,22 +405,25 @@ fun CalculadoraPantalla() {
                     "CALCULAR LIQUIDACIÓN",
                     fontWeight = FontWeight.Black,
                     fontSize = 15.sp,
-                    letterSpacing = 1.2.sp
+                    letterSpacing = 1.sp
                 )
             }
         }
 
         resultado?.let { r ->
-            Spacer(Modifier.height(24.dp))
-            SeccionResultadosCard(resultado = r, plantaConfirmada = plantaConfirmada)
+            ResultadoLiquidacion(
+                resultado = r,
+                planta = plantaConfirmada,
+                modifier = Modifier.bringIntoViewRequester(resultadoRequester)
+            )
         }
 
-        Spacer(Modifier.height(20.dp))
         Text(
             "Los precios de los metales se administran centralmente y se actualizan periódicamente.",
             color = TextoGrisSecundario,
             fontSize = 11.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 
@@ -450,7 +440,7 @@ fun CalculadoraPantalla() {
             },
             title = {
                 Text(
-                    "Límite Gratuito Alcanzado",
+                    "Límite gratuito alcanzado",
                     fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center,
                     color = TextoBlancoSuave

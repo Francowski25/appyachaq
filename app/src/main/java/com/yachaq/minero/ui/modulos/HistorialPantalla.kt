@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -241,7 +243,18 @@ private fun HistorialContenido() {
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            if (!cargando && error == null && registros.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (filtrados.size == 1) "1 liquidación" else "${filtrados.size} liquidaciones",
+                    color = TextoGrisSecundario,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(8.dp))
+            } else {
+                Spacer(Modifier.height(16.dp))
+            }
 
             when {
                 cargando -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -464,111 +477,177 @@ fun TarjetaHistorialCard(
     onEliminar: () -> Unit = {},
     onExportar: () -> Unit = {}
 ) {
+    val hayCu = (registro.leyCu ?: 0.0) > 0.0
+    val hayAg = (registro.leyAg ?: 0.0) > 0.0
+    val hayAu = (registro.leyAu ?: 0.0) > 0.0
+
     Card(
         colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, ColorGrisBorde),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+            // Encabezado: mineral, fecha y planta
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = registro.material ?: "Sin mineral",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoBlancoSuave
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = TextoGrisSecundario, modifier = Modifier.size(14.dp))
+                Column(
+                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
-                        text = registro.calculatedAt?.let { FormateadorFecha.formatearParaMostrar(it) } ?: "-",
-                        fontSize = 12.sp,
+                        text = registro.material ?: "Sin mineral",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoBlancoSuave
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = TextoGrisSecundario, modifier = Modifier.size(13.dp))
+                        Text(
+                            text = registro.calculatedAt?.let { FormateadorFecha.formatearParaMostrar(it) } ?: "-",
+                            fontSize = 12.sp,
+                            color = TextoGrisSecundario
+                        )
+                    }
+                    if (!registro.plantName.isNullOrBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Icon(Icons.Default.Factory, contentDescription = null, tint = TextoGrisSecundario, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = registro.plantName.orEmpty(),
+                                fontSize = 12.sp,
+                                color = TextoGrisSecundario,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (hayCu) EtiquetaMetal("Cu")
+                    if (hayAg) EtiquetaMetal("Ag")
+                    if (hayAu) EtiquetaMetal("Au")
+                }
+            }
+
+            HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.6f))
+
+            // Total y cantidades
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
+                    Text(
+                        "TOTAL A PAGAR",
+                        fontSize = 10.sp,
                         color = TextoGrisSecundario,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = dolares(registro.totalAPagar ?: 0.0),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        color = AmarilloMineroBrillante
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "${String.format(Locale.US, "%,.2f", registro.tonelaje ?: 0.0)} TM brutas",
+                        fontSize = 11.sp,
+                        color = TextoGrisSecundario
+                    )
+                    Text(
+                        "${String.format(Locale.US, "%,.2f", registro.tmns ?: 0.0)} TMNS secas",
+                        fontSize = 11.sp,
+                        color = TextoGrisSecundario
                     )
                 }
             }
 
-            HorizontalDivider(color = ColorGrisBorde)
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Carga bruta:", fontSize = 11.sp, color = TextoGrisSecundario)
-                    Text("${registro.tonelaje ?: 0.0} TM", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("TMNS Secas:", fontSize = 11.sp, color = TextoGrisSecundario)
-                    Text("${String.format(Locale.US, "%.2f", registro.tmns ?: 0.0)} TMNS", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
-                }
-            }
-
-            Surface(shape = RoundedCornerShape(12.dp), color = GrisCampos, modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Acciones
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onClickDetalle,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AmarilloMineroBrillante,
+                        contentColor = FondoNegroAbsoluto
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier.weight(1f).height(42.dp)
                 ) {
-                    Column {
-                        Text("TOTAL LIQUIDACIÓN NETO", fontSize = 10.sp, color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
-                        Text(text = dolares(registro.totalAPagar ?: 0.0), fontSize = 18.sp, fontWeight = FontWeight.Black, color = AmarilloMineroBrillante)
+                    Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Ver detalle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                FilledIconButton(
+                    onClick = onExportar,
+                    enabled = !exportando,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = GrisCampos,
+                        contentColor = AmarilloMineroBrillante,
+                        disabledContainerColor = GrisCampos,
+                        disabledContentColor = AmarilloMineroBrillante
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    if (exportando) {
+                        CircularProgressIndicator(
+                            color = AmarilloMineroBrillante,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.PictureAsPdf,
+                            contentDescription = "Exportar a PDF",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
+                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = onEliminar,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Eliminar este cálculo",
-                                tint = ErrorRojo
-                            )
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = onExportar,
-                                enabled = !exportando,
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                if (exportando) {
-                                    CircularProgressIndicator(
-                                        color = AmarilloMineroBrillante,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                } else {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                                }
-                                Spacer(Modifier.width(4.dp))
-                                Text("Exportar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            OutlinedButton(
-                                onClick = onClickDetalle,
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Detalle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
+                FilledIconButton(
+                    onClick = onEliminar,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = ErrorRojo.copy(alpha = 0.12f),
+                        contentColor = ErrorRojo
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar este cálculo",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EtiquetaMetal(texto: String) {
+    Surface(shape = RoundedCornerShape(50), color = GrisCampos) {
+        Text(
+            text = texto,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = AmarilloMineroBrillante,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+        )
     }
 }
