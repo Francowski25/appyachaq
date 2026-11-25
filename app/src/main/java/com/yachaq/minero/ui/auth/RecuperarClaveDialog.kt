@@ -18,7 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
@@ -51,7 +49,7 @@ import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.ForgotPasswordRequest
 import com.yachaq.minero.data.remote.model.ResetPasswordRequest
 import com.yachaq.minero.ui.auth.componentes.*
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.theme.ExitoVerde
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -65,6 +63,9 @@ fun RecuperarClaveDialog(
     onCerrar: () -> Unit,
     onClaveRestablecida: (String) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+
     var paso by remember { mutableStateOf(PasoRecuperacion.CORREO) }
     var correo by remember { mutableStateOf(correoInicial) }
     var codigo by remember { mutableStateOf("") }
@@ -191,16 +192,15 @@ fun RecuperarClaveDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .widthIn(max = 420.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = FondoNegroSecundario,
-            border = BorderStroke(1.dp, ColorGrisBorde)
+            shape = MaterialTheme.shapes.extraLarge,
+            color = cs.surfaceContainer,
+            border = BorderStroke(1.dp, cs.outlineVariant)
         ) {
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp)
             ) {
-                // Cabecera: volver al paso anterior y cerrar
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     AnimatedVisibility(visible = paso == PasoRecuperacion.CODIGO || paso == PasoRecuperacion.CLAVE) {
                         IconButton(
@@ -213,7 +213,7 @@ fun RecuperarClaveDialog(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = cs.onSurfaceVariant
                             )
                         }
                     }
@@ -223,7 +223,7 @@ fun RecuperarClaveDialog(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cerrar",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = cs.onSurfaceVariant
                             )
                         }
                     }
@@ -248,14 +248,14 @@ fun RecuperarClaveDialog(
                             IconoPaso(Icons.Default.Email)
                             Text(
                                 text = "Recuperar contraseña",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                style = tp.titleLarge,
+                                color = cs.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Escribe tu correo y te enviaremos un código de verificación de 6 dígitos.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodyMedium,
+                                color = cs.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(20.dp))
                             CampoAuth(
@@ -279,8 +279,8 @@ fun RecuperarClaveDialog(
                             IconoPaso(Icons.Default.MarkEmailRead)
                             Text(
                                 text = "Verifica tu correo",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                style = tp.titleLarge,
+                                color = cs.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
@@ -289,12 +289,12 @@ fun RecuperarClaveDialog(
                                     withStyle(
                                         SpanStyle(
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = cs.onSurface
                                         )
                                     ) { append(correo.trim()) }
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodyMedium,
+                                color = cs.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(24.dp))
                             CampoCodigo(
@@ -323,16 +323,12 @@ fun RecuperarClaveDialog(
                                             segundosReenvio / 60,
                                             segundosReenvio % 60
                                         ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = tp.bodySmall,
+                                        color = cs.onSurfaceVariant
                                     )
                                 } else {
                                     TextButton(onClick = { enviarCodigo(esReenvio = true) }, enabled = !cargando) {
-                                        Text(
-                                            text = "Reenviar código",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Text(text = "Reenviar código", style = tp.labelMedium)
                                     }
                                 }
                             }
@@ -349,14 +345,14 @@ fun RecuperarClaveDialog(
                             IconoPaso(Icons.Default.LockReset)
                             Text(
                                 text = "Crea tu nueva contraseña",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                style = tp.titleLarge,
+                                color = cs.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Elige una contraseña segura. La usarás para ingresar a tu cuenta.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodyMedium,
+                                color = cs.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(20.dp))
                             CampoAuth(
@@ -406,7 +402,7 @@ fun RecuperarClaveDialog(
                                     },
                                     modifier = Modifier.align(Alignment.CenterHorizontally)
                                 ) {
-                                    Text("Cambiar el código", fontWeight = FontWeight.Bold)
+                                    Text("Cambiar el código", style = tp.labelLarge)
                                 }
                             }
                         }
@@ -426,21 +422,21 @@ fun RecuperarClaveDialog(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = Color(0xFF4CAF50),
+                                    tint = ExitoVerde,
                                     modifier = Modifier.size(84.dp).scale(escala)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "¡Contraseña actualizada!",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
+                                    style = tp.titleLarge,
+                                    color = cs.onSurface,
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = "Te llevamos al inicio de sesión.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = tp.bodyMedium,
+                                    color = cs.onSurfaceVariant,
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -456,18 +452,18 @@ fun RecuperarClaveDialog(
 
 @Composable
 private fun IndicadorPasos(actual: Int, total: Int = 3) {
+    val cs = MaterialTheme.colorScheme
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         repeat(total) { i ->
             val color by animateColorAsState(
-                targetValue = if (i <= actual) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                targetValue = if (i <= actual) cs.primary else cs.outlineVariant,
                 label = "paso$i"
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .clip(CircleShape)
                     .background(color)
             )
         }
@@ -476,16 +472,17 @@ private fun IndicadorPasos(actual: Int, total: Int = 3) {
 
 @Composable
 private fun IconoPaso(icono: ImageVector) {
+    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .size(56.dp)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+            .background(cs.primary.copy(alpha = 0.15f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icono,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = cs.primary,
             modifier = Modifier.size(28.dp)
         )
     }

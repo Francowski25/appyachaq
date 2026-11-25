@@ -11,14 +11,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,7 +40,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yachaq.minero.R
 import com.yachaq.minero.data.remote.RetrofitClient
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.theme.ExitoVerde
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -121,7 +120,7 @@ private fun formatoFecha(fecha: String?): String {
     return "${partes[2]}/${partes[1]}/${partes[0]} · ${fecha.substring(11, 16)}"
 }
 
-// Reduce el tamaño de la cifra cuando es larga para que no se corte en pantallas angostas
+// Reduce la cifra cuando es larga para que no se corte en pantallas angostas
 private fun tamanoPrecio(texto: String): TextUnit = when {
     texto.length > 9 -> 13.sp
     texto.length > 7 -> 15.sp
@@ -131,7 +130,6 @@ private fun tamanoPrecio(texto: String): TextUnit = when {
 private val ColorCobre = Color(0xFFE08A3C)
 private val ColorPlata = Color(0xFFB0BEC5)
 private val ColorOro = Color(0xFFFFD54F)
-private val ColorVivo = Color(0xFF4CAF50)
 
 @Composable
 fun PreciosMercadoCard(
@@ -139,7 +137,8 @@ fun PreciosMercadoCard(
     viewModel: PreciosMercadoViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val forma = RoundedCornerShape(24.dp)
+    val cs = MaterialTheme.colorScheme
+    val forma = MaterialTheme.shapes.extraLarge
 
     Column(
         modifier = modifier
@@ -148,9 +147,9 @@ fun PreciosMercadoCard(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        AmarilloMineroBrillante.copy(alpha = 0.14f),
-                        FondoNegroSecundario,
-                        FondoNegroSecundario
+                        cs.primary.copy(alpha = 0.14f),
+                        cs.surfaceContainer,
+                        cs.surfaceContainer
                     )
                 )
             )
@@ -158,8 +157,8 @@ fun PreciosMercadoCard(
                 1.dp,
                 Brush.linearGradient(
                     listOf(
-                        AmarilloMineroBrillante.copy(alpha = 0.7f),
-                        AmarilloMineroBrillante.copy(alpha = 0.08f)
+                        cs.primary.copy(alpha = 0.7f),
+                        cs.primary.copy(alpha = 0.08f)
                     )
                 ),
                 forma
@@ -202,19 +201,21 @@ fun PreciosMercadoCard(
 
 @Composable
 private fun EncabezadoPrecios(cargando: Boolean, onActualizar: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "PRECIOS DEL MERCADO",
-                color = AmarilloMineroBrillante,
-                fontSize = 12.sp,
+                style = tp.labelMedium,
+                color = cs.primary,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.4.sp
             )
             Text(
                 text = "Base de tu liquidación",
-                color = TextoGrisSecundario,
-                fontSize = 11.sp
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant
             )
         }
         BotonActualizar(cargando = cargando, onClick = onActualizar)
@@ -241,21 +242,22 @@ private fun BotonActualizar(cargando: Boolean, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.Refresh,
             contentDescription = "Actualizar precios",
-            tint = AmarilloMineroBrillante.copy(alpha = if (cargando) 0.6f else 1f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = if (cargando) 0.6f else 1f),
             modifier = Modifier.rotate(grados)
         )
     }
 }
 
-// Estado de la última actualización: verde si está al día, rojo si la última consulta falló
+// Verde si está al día, rojo si la última consulta falló
 @Composable
 private fun PiePrecios(actualizado: String?, error: String?) {
+    val cs = MaterialTheme.colorScheme
     val fallo = error != null
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .size(6.dp)
-                .background(if (fallo) ErrorRojo else ColorVivo, CircleShape)
+                .background(if (fallo) cs.error else ExitoVerde, CircleShape)
         )
         Spacer(Modifier.width(6.dp))
         Text(
@@ -264,8 +266,8 @@ private fun PiePrecios(actualizado: String?, error: String?) {
             } else {
                 "Actualizado: ${formatoFecha(actualizado)}"
             },
-            color = if (fallo) ErrorRojo else TextoGrisSecundario,
-            fontSize = 10.sp
+            style = MaterialTheme.typography.labelSmall,
+            color = if (fallo) cs.error else cs.onSurfaceVariant
         )
     }
 }
@@ -279,21 +281,23 @@ private fun ItemPrecio(
     color: Color,
     modifier: Modifier = Modifier
 ) {
-    val forma = RoundedCornerShape(18.dp)
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val texto = precio?.let { formatoPrecio(it) }
 
     Column(
         modifier = modifier
-            .clip(forma)
+            .clip(formas.large)
             .background(color.copy(alpha = 0.08f))
-            .border(1.dp, color.copy(alpha = 0.4f), forma)
+            .border(1.dp, color.copy(alpha = 0.4f), formas.large)
             .padding(vertical = 12.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
                 .size(54.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(formas.medium)
                 .background(
                     Brush.radialGradient(
                         listOf(
@@ -318,10 +322,9 @@ private fun ItemPrecio(
 
         Text(
             text = nombre,
-            color = TextoGrisSecundario,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.sp
+            style = tp.labelSmall,
+            color = cs.onSurfaceVariant,
+            fontWeight = FontWeight.Black
         )
 
         Spacer(Modifier.height(2.dp))
@@ -330,13 +333,13 @@ private fun ItemPrecio(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "$",
-                    color = TextoGrisSecundario,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    style = tp.labelMedium,
+                    color = cs.onSurfaceVariant
                 )
                 Text(
                     text = texto,
-                    color = TextoBlancoSuave,
+                    style = tp.titleMedium,
+                    color = cs.onSurface,
                     fontSize = tamanoPrecio(texto),
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
@@ -346,24 +349,24 @@ private fun ItemPrecio(
         } else {
             Text(
                 text = "—",
-                color = TextoGrisSecundario,
-                fontSize = 17.sp,
+                style = tp.titleMedium,
+                color = cs.onSurfaceVariant,
                 fontWeight = FontWeight.ExtraBold
             )
         }
 
         Text(
             text = unidad,
-            color = color,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
+            style = tp.labelSmall,
+            color = color
         )
     }
 }
 
-// Tarjeta de carga con pulso suave, con la misma forma que ItemPrecio
 @Composable
 private fun PrecioSkeleton(modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val formas = MaterialTheme.shapes
     val transicion = rememberInfiniteTransition(label = "cargaPrecio")
     val alfa by transicion.animateFloat(
         initialValue = 0.06f,
@@ -371,28 +374,30 @@ private fun PrecioSkeleton(modifier: Modifier = Modifier) {
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "alfaCarga"
     )
-    val bloque = TextoGrisSecundario.copy(alpha = alfa)
+    val bloque = cs.onSurfaceVariant.copy(alpha = alfa)
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(TextoGrisSecundario.copy(alpha = alfa / 2))
+            .clip(formas.large)
+            .background(cs.onSurfaceVariant.copy(alpha = alfa / 2))
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(modifier = Modifier.size(54.dp).background(bloque, RoundedCornerShape(16.dp)))
+        Box(modifier = Modifier.size(54.dp).background(bloque, formas.medium))
         Spacer(Modifier.height(12.dp))
-        Box(modifier = Modifier.width(40.dp).height(8.dp).background(bloque, RoundedCornerShape(4.dp)))
+        Box(modifier = Modifier.width(40.dp).height(8.dp).background(bloque, formas.extraSmall))
         Spacer(Modifier.height(8.dp))
-        Box(modifier = Modifier.width(56.dp).height(14.dp).background(bloque, RoundedCornerShape(4.dp)))
+        Box(modifier = Modifier.width(56.dp).height(14.dp).background(bloque, formas.extraSmall))
         Spacer(Modifier.height(8.dp))
-        Box(modifier = Modifier.width(32.dp).height(8.dp).background(bloque, RoundedCornerShape(4.dp)))
+        Box(modifier = Modifier.width(32.dp).height(8.dp).background(bloque, formas.extraSmall))
     }
 }
 
-// Se muestra solo cuando nunca se pudo cargar ningún precio
+// Solo cuando nunca se pudo cargar ningún precio
 @Composable
 private fun ErrorPrecios(mensaje: String?, onReintentar: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -402,36 +407,31 @@ private fun ErrorPrecios(mensaje: String?, onReintentar: () -> Unit) {
         Icon(
             imageVector = Icons.Default.CloudOff,
             contentDescription = null,
-            tint = ErrorRojo,
+            tint = cs.error,
             modifier = Modifier.size(32.dp)
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = "No se pudieron cargar los precios",
-            color = TextoBlancoSuave,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+            style = tp.titleSmall,
+            color = cs.onSurface,
             textAlign = TextAlign.Center
         )
         mensaje?.let {
             Spacer(Modifier.height(4.dp))
             Text(
                 text = it,
-                color = TextoGrisSecundario,
-                fontSize = 11.sp,
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = onReintentar,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AmarilloMineroBrillante,
-                contentColor = FondoNegroAbsoluto
-            )
+            shape = MaterialTheme.shapes.medium
         ) {
-            Text("REINTENTAR", fontWeight = FontWeight.Black, fontSize = 12.sp)
+            Text("REINTENTAR", style = tp.labelLarge, fontWeight = FontWeight.Black)
         }
     }
 }

@@ -3,7 +3,7 @@ package com.yachaq.minero.ui.auth.componentes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -15,10 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.theme.AdvertenciaNaranja
+import com.yachaq.minero.ui.theme.ExitoVerde
 
 data class RequisitoClave(val texto: String, val cumple: Boolean)
 
@@ -29,18 +29,19 @@ fun requisitosClave(clave: String) = listOf(
     RequisitoClave("Un símbolo (por ejemplo @ # $ !)", clave.any { !it.isLetterOrDigit() })
 )
 
-// Medidor visual: es una guía, no bloquea nada por sí mismo
+// Es una guía visual, no bloquea nada por sí mismo
 @Composable
 fun FortalezaClave(clave: String, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
     val requisitos = requisitosClave(clave)
     val puntos = requisitos.count { it.cumple }
 
     val (etiqueta, color) = when {
-        clave.isEmpty() -> "Escribe una contraseña" to MaterialTheme.colorScheme.onSurfaceVariant
-        puntos <= 1 -> "Débil" to MaterialTheme.colorScheme.error
-        puntos == 2 -> "Aceptable" to Color(0xFFFF9800)
-        puntos == 3 -> "Buena" to AmarilloMineroBrillante
-        else -> "Fuerte" to Color(0xFF4CAF50)
+        clave.isEmpty() -> "Escribe una contraseña" to cs.onSurfaceVariant
+        puntos <= 1 -> "Débil" to cs.error
+        puntos == 2 -> "Aceptable" to AdvertenciaNaranja
+        puntos == 3 -> "Buena" to cs.primary
+        else -> "Fuerte" to ExitoVerde
     }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -48,14 +49,14 @@ fun FortalezaClave(clave: String, modifier: Modifier = Modifier) {
             repeat(4) { i ->
                 val colorBarra by animateColorAsState(
                     targetValue = if (clave.isNotEmpty() && i < puntos.coerceAtLeast(1)) color
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                    else cs.outlineVariant,
                     label = "barra$i"
                 )
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(CircleShape)
                         .background(colorBarra)
                 )
             }
@@ -70,8 +71,8 @@ fun FortalezaClave(clave: String, modifier: Modifier = Modifier) {
 
         requisitos.forEach { requisito ->
             val colorRequisito by animateColorAsState(
-                targetValue = if (requisito.cumple) Color(0xFF4CAF50)
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                targetValue = if (requisito.cumple) ExitoVerde
+                else cs.onSurfaceVariant.copy(alpha = 0.7f),
                 label = "requisito"
             )
             Row(

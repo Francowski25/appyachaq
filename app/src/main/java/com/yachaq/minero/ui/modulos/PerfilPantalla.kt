@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -40,7 +39,6 @@ import com.yachaq.minero.ui.auth.componentes.FortalezaClave
 import com.yachaq.minero.ui.auth.componentes.MensajeAuth
 import com.yachaq.minero.ui.auth.componentes.TarjetaAuth
 import com.yachaq.minero.ui.auth.componentes.requisitosClave
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
 
 private fun inicialesPerfil(nombre: String?): String {
@@ -57,6 +55,9 @@ fun PerfilPantalla() {
     val usuario = SesionUsuario.usuarioActual ?: return
     val scope = rememberCoroutineScope()
     val foco = LocalFocusManager.current
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     val nombreOriginal = remember(usuario.name) { usuario.name.orEmpty() }
     val correoOriginal = remember(usuario.email) { usuario.email.orEmpty() }
@@ -172,7 +173,6 @@ fun PerfilPantalla() {
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Encabezado
             Aparecer {
                 Column(
                     modifier = Modifier
@@ -182,19 +182,17 @@ fun PerfilPantalla() {
                 ) {
                     Text(
                         text = "Mi perfil",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        style = tp.headlineMedium,
+                        color = cs.onBackground
                     )
                     Text(
                         text = "Administra tu información y la seguridad de tu cuenta.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
                     )
                 }
             }
 
-            // Tarjeta de identidad
             Aparecer(retardoMs = 80) {
                 TarjetaAuth(modifier = Modifier.widthIn(max = 640.dp)) {
                     Row(
@@ -202,23 +200,22 @@ fun PerfilPantalla() {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Avatar con el borde en degradado dorado del logo de auth
                         Box(
                             modifier = Modifier
                                 .size(72.dp)
-                                .background(GrisCampos, CircleShape)
+                                .background(cs.surfaceContainerHigh, CircleShape)
                                 .border(
                                     2.dp,
-                                    Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)),
+                                    Brush.linearGradient(listOf(cs.primary, cs.secondary)),
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = inicialesPerfil(usuario.name),
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = tp.headlineSmall,
                                 fontWeight = FontWeight.Black,
-                                color = AmarilloMineroBrillante
+                                color = cs.primary
                             )
                         }
 
@@ -228,16 +225,15 @@ fun PerfilPantalla() {
                         ) {
                             Text(
                                 text = usuario.name ?: "Usuario",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                style = tp.titleLarge,
+                                color = cs.onSurface,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = usuario.email ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -247,15 +243,14 @@ fun PerfilPantalla() {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = AmarilloMinero.copy(alpha = 0.16f)
+                                    shape = CircleShape,
+                                    color = cs.secondary.copy(alpha = 0.16f)
                                 ) {
                                     Text(
                                         text = rol,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AmarilloMineroBrillante
+                                        style = tp.labelSmall,
+                                        color = cs.primary
                                     )
                                 }
 
@@ -264,11 +259,13 @@ fun PerfilPantalla() {
                                     modifier = Modifier
                                         .background(
                                             if (planActivo) {
-                                                Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero))
+                                                Brush.linearGradient(listOf(cs.primary, cs.secondary))
                                             } else {
-                                                Brush.linearGradient(listOf(GrisCampos, GrisCampos))
+                                                Brush.linearGradient(
+                                                    listOf(cs.surfaceContainerHigh, cs.surfaceContainerHigh)
+                                                )
                                             },
-                                            RoundedCornerShape(50)
+                                            CircleShape
                                         )
                                         .padding(horizontal = 10.dp, vertical = 5.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -279,15 +276,13 @@ fun PerfilPantalla() {
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
                                             modifier = Modifier.size(12.dp),
-                                            tint = FondoNegroAbsoluto
+                                            tint = cs.onPrimary
                                         )
                                     }
                                     Text(
                                         text = etiquetaPlan,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (planActivo) FondoNegroAbsoluto
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = tp.labelSmall,
+                                        color = if (planActivo) cs.onPrimary else cs.onSurfaceVariant
                                     )
                                 }
                             }
@@ -296,21 +291,19 @@ fun PerfilPantalla() {
                 }
             }
 
-            // Datos personales
             Aparecer(retardoMs = 160) {
                 TarjetaAuth(modifier = Modifier.widthIn(max = 640.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 text = "Información personal",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                style = tp.titleMedium,
+                                color = cs.onSurface
                             )
                             Text(
                                 text = "Actualiza los datos asociados a tu cuenta.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant
                             )
                         }
 
@@ -342,7 +335,6 @@ fun PerfilPantalla() {
                 }
             }
 
-            // Seguridad
             Aparecer(retardoMs = 240) {
                 TarjetaAuth(modifier = Modifier.widthIn(max = 640.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -351,27 +343,26 @@ fun PerfilPantalla() {
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                shape = formas.small,
+                                color = cs.primary.copy(alpha = 0.10f)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = cs.primary,
                                     modifier = Modifier.padding(10.dp).size(20.dp)
                                 )
                             }
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text(
                                     text = "Seguridad",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    style = tp.titleMedium,
+                                    color = cs.onSurface
                                 )
                                 Text(
                                     text = "Deja estos campos vacíos si no deseas cambiar tu contraseña.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = tp.bodySmall,
+                                    color = cs.onSurfaceVariant
                                 )
                             }
                         }
@@ -419,20 +410,19 @@ fun PerfilPantalla() {
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = cs.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "Utiliza una contraseña segura y evita compartirla con otras personas.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
 
-            // Mensajes de estado y acciones
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -457,16 +447,14 @@ fun PerfilPantalla() {
                             exito = null
                         },
                         enabled = hayCambios && !guardando,
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, ColorGrisBorde),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
+                        shape = formas.medium,
+                        border = BorderStroke(1.dp, cs.outlineVariant),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.onSurface),
                         modifier = Modifier
                             .weight(1f)
                             .height(54.dp)
                     ) {
-                        Text("DESCARTAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("DESCARTAR", style = tp.labelLarge, letterSpacing = 1.sp)
                     }
 
                     BotonAuth(
@@ -494,13 +482,13 @@ fun PerfilPantalla() {
         }
         AlertDialog(
             onDismissRequest = { mostrarConfirmacion = false },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = FondoNegroSecundario,
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
             icon = {
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = cs.primary,
                     modifier = Modifier.size(32.dp)
                 )
             },
@@ -511,26 +499,23 @@ fun PerfilPantalla() {
                         cambiaCorreo -> "Cambiar correo"
                         else -> "Cambiar contraseña"
                     },
-                    fontWeight = FontWeight.Bold
+                    style = tp.titleLarge,
+                    color = cs.onSurface
                 )
             },
-            text = { Text(text = mensaje.trim(), fontSize = 14.sp) },
+            text = { Text(text = mensaje.trim(), style = tp.bodyMedium, color = cs.onSurfaceVariant) },
             confirmButton = {
                 Button(
                     onClick = {
                         mostrarConfirmacion = false
                         guardar()
                     },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) { Text("Sí, cambiar", fontWeight = FontWeight.Bold) }
+                    shape = formas.medium
+                ) { Text("Sí, cambiar", style = tp.labelLarge) }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarConfirmacion = false }) {
-                    Text("Cancelar", color = TextoGrisSecundario)
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
             }
         )

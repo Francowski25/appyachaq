@@ -2,7 +2,6 @@ package com.yachaq.minero.ui.componentes
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -17,7 +16,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.model.SesionUsuario
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,6 +29,8 @@ fun AppTopBar(
 ) {
     // Fuente de verdad reactiva: si SesionUsuario cambia, esto se recompone
     val usuario = SesionUsuario.usuarioActual ?: return
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
 
     val esAdmin = SesionUsuario.esAdmin()
     val esPremium = usuario.isPremium
@@ -59,9 +59,9 @@ fun AppTopBar(
                         title = {
                             Text(
                                 text = titulo,
+                                style = tp.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 17.sp,
+                                color = cs.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -71,24 +71,22 @@ fun AppTopBar(
                                 Icon(
                                     imageVector = Icons.Default.Menu,
                                     contentDescription = "Menú lateral",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = cs.primary
                                 )
                             }
                         },
                         actions = {
-                            // Botón FREE/PREMIUM solo para usuarios no admin
+                            // FREE/PREMIUM solo para usuarios no admin
                             if (!esAdmin) {
                                 Surface(
                                     onClick = {
                                         SesionUsuario.alternarPlanPremiumSimulado()
                                     },
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = if (esPremium) AmarilloMineroBrillante
-                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.large,
+                                    color = if (esPremium) cs.primary else cs.surfaceContainerHigh,
                                     border = BorderStroke(
                                         1.dp,
-                                        if (esPremium) AmarilloMineroBrillante
-                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                        if (esPremium) cs.primary else cs.outlineVariant
                                     ),
                                     modifier = Modifier.padding(end = 12.dp)
                                 ) {
@@ -100,30 +98,28 @@ fun AppTopBar(
                                         Icon(
                                             imageVector = if (esPremium) Icons.Default.Star else Icons.Default.Lock,
                                             contentDescription = null,
-                                            tint = if (esPremium) FondoNegroAbsoluto
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = if (esPremium) cs.onPrimary else cs.onSurfaceVariant,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Text(
                                             text = if (esPremium) "PREMIUM" else "FREE",
-                                            fontSize = 11.sp,
+                                            style = tp.labelMedium,
                                             fontWeight = FontWeight.Black,
                                             letterSpacing = 0.8.sp,
-                                            color = if (esPremium) FondoNegroAbsoluto
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = if (esPremium) cs.onPrimary else cs.onSurfaceVariant
                                         )
                                     }
                                 }
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = if (esPremiumOAdmin) AmarilloMinero.copy(alpha = 0.25f)
-                            else MaterialTheme.colorScheme.surface
+                            containerColor = if (esPremiumOAdmin) cs.secondary.copy(alpha = 0.25f)
+                            else cs.surface
                         )
                     )
                     HorizontalDivider(
-                        color = if (esPremiumOAdmin) AmarilloMinero.copy(alpha = 0.5f)
-                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        color = if (esPremiumOAdmin) cs.secondary.copy(alpha = 0.5f)
+                        else cs.outlineVariant
                     )
                 }
             },

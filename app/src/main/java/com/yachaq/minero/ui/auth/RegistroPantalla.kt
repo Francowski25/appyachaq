@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,6 +37,9 @@ fun RegistroPantalla(
     onRegistroExitoso: (LoginResponse) -> Unit,
     onVolverALogin: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
@@ -126,8 +128,8 @@ fun RegistroPantalla(
                     title = {
                         Text(
                             text = "Crear cuenta",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            style = tp.titleLarge,
+                            color = cs.primary
                         )
                     },
                     navigationIcon = {
@@ -135,7 +137,7 @@ fun RegistroPantalla(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = cs.primary
                             )
                         }
                     },
@@ -166,14 +168,13 @@ fun RegistroPantalla(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "Únete a Yachaq Minero",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                style = tp.titleLarge,
+                                color = cs.primary
                             )
                             Text(
                                 text = "Crea tu cuenta para calcular y gestionar tus operaciones",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant
                             )
                         }
                     }
@@ -267,15 +268,14 @@ fun RegistroPantalla(
                         ) {
                             Text(
                                 text = "¿Ya tienes una cuenta? ",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = tp.bodyMedium,
+                                color = cs.onSurfaceVariant
                             )
                             TextButton(onClick = onVolverALogin, enabled = !cargando, contentPadding = PaddingValues(0.dp)) {
                                 Text(
                                     text = "Inicia sesión",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    style = tp.labelLarge,
+                                    color = cs.primary
                                 )
                             }
                         }

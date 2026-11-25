@@ -9,7 +9,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -36,7 +35,6 @@ import com.yachaq.minero.data.remote.model.ResponseUserTerms
 import com.yachaq.minero.ui.auth.componentes.Aparecer
 import com.yachaq.minero.ui.auth.componentes.AuthFondo
 import com.yachaq.minero.ui.auth.componentes.BotonAuth
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
@@ -105,7 +103,7 @@ private fun ResponseUserTerms.toUi() = TerminosUi(
     igvPorcentaje = igvPorcentaje ?: 0.0, detraccionPorcentaje = detraccionPorcentaje ?: 0.0
 )
 
-// Definición de bloques: cada campo sabe leerse y escribirse en TerminosUi
+// Cada campo sabe leerse y escribirse en TerminosUi
 private class CampoDef(
     val etiqueta: String,
     val unidad: String = "",
@@ -195,7 +193,7 @@ private val BLOQUES = listOf(
 // Muestra 85.0 como "85" y 0.18 como "0.18"
 private fun num(v: Double): String = BigDecimal.valueOf(v).stripTrailingZeros().toPlainString()
 
-// Verificación de un campo: mensaje de error o null si es válido
+// Mensaje de error o null si el valor es válido
 private fun CampoDef.error(texto: String): String? {
     val v = texto.toDoubleOrNull() ?: return "Ingresa un número válido."
     if (v < 0) return "No puede ser negativo."
@@ -204,7 +202,7 @@ private fun CampoDef.error(texto: String): String? {
     return null
 }
 
-// Términos de una planta del sistema: globales (admin) o del minero (favoritas)
+// Planta del sistema: términos globales (admin) o del minero (favoritas)
 @Composable
 fun TerminosPlanta(
     idPlant: String,
@@ -266,7 +264,7 @@ fun TerminosPlanta(
     )
 }
 
-// Términos propios de una planta personal del minero (fila de tterms de esa planta)
+// Términos propios de una planta personal del minero
 @Composable
 fun TerminosPlantaPersonal(
     idUserPlant: String,
@@ -304,7 +302,7 @@ fun TerminosPlantaPersonal(
     )
 }
 
-// Contenedor común: carga los términos y muestra la pasarela. No sabe de dónde vienen los datos.
+// Contenedor común: no sabe de dónde vienen los datos.
 // cargar devuelve (términos, error); guardar devuelve el mensaje de error o null si salió bien.
 @Composable
 private fun TerminosFormulario(
@@ -315,6 +313,7 @@ private fun TerminosFormulario(
     guardar: suspend (TerminosUi) -> String?,
     onDismiss: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     var terminos by remember { mutableStateOf<TerminosUi?>(null) }
     var cargando by remember { mutableStateOf(true) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
@@ -334,16 +333,15 @@ private fun TerminosFormulario(
     ) {
         Surface(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, ColorGrisBorde)
+            shape = MaterialTheme.shapes.extraLarge,
+            color = cs.surface,
+            border = BorderStroke(1.dp, cs.outlineVariant)
         ) {
-            // Mismo fondo degradado con resplandor dorado de las pantallas de auth
             AuthFondo {
                 val t = terminos
                 when {
                     cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        CircularProgressIndicator(color = cs.primary)
                     }
 
                     errorCarga != null -> Column(
@@ -355,7 +353,7 @@ private fun TerminosFormulario(
                         Spacer(Modifier.height(16.dp))
                         BotonAuth(texto = "REINTENTAR", cargando = false, onClick = { recargar++ })
                         TextButton(onClick = onDismiss) {
-                            Text("CERRAR", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
+                            Text("CERRAR", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
                         }
                     }
 
@@ -372,7 +370,7 @@ private fun TerminosFormulario(
     }
 }
 
-// Pasarela: un bloque por paso; cada bloque se verifica y se guarda antes de avanzar
+// Un bloque por paso; cada bloque se verifica y se guarda antes de avanzar
 @Composable
 private fun AsistenteTerminos(
     titulo: String,
@@ -382,8 +380,14 @@ private fun AsistenteTerminos(
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var actual by remember { mutableStateOf(inicial) }          // lo último guardado en el servidor
-    var paso by remember { mutableIntStateOf(0) }                // BLOQUES.size = resumen final
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
+
+    // Lo último guardado en el servidor
+    var actual by remember { mutableStateOf(inicial) }
+    // BLOQUES.size es el resumen final
+    var paso by remember { mutableIntStateOf(0) }
     var guardando by remember { mutableStateOf(false) }
     var errorBloque by remember { mutableStateOf<String?>(null) }
     val guardados = remember { mutableStateListOf<Int>() }
@@ -440,7 +444,6 @@ private fun AsistenteTerminos(
     val bloqueConCambios = bloqueActual?.campos?.any { cambiado(it) } ?: false
 
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
-        // Encabezado
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 18.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -448,36 +451,35 @@ private fun AsistenteTerminos(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     titulo,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 11.sp,
+                    style = tp.labelMedium,
+                    color = cs.primary,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.5.sp
                 )
                 Text(
                     nombrePlanta,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 20.sp,
+                    style = tp.titleLarge,
+                    color = cs.onSurface,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
             IconButton(onClick = onDismiss, enabled = !guardando) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = cs.onSurfaceVariant)
             }
         }
 
-        // Progreso y navegación entre bloques
         Column(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             LinearProgressIndicator(
                 progress = { paso / total.toFloat() },
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = ColorGrisBorde,
+                color = cs.primary,
+                trackColor = cs.outlineVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .clip(CircleShape)
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -502,7 +504,6 @@ private fun AsistenteTerminos(
             }
         }
 
-        // Contenido del paso
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -516,14 +517,12 @@ private fun AsistenteTerminos(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
                             "BLOQUE ${p + 1} DE $total",
-                            color = TextoGrisSecundario,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
+                            style = tp.labelMedium,
+                            color = cs.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp)
                         )
                         TarjetaPaso(numero = p + 1, titulo = b.titulo.uppercase()) {
-                            Text(b.descripcion, color = TextoGrisSecundario, fontSize = 12.sp)
+                            Text(b.descripcion, style = tp.bodySmall, color = cs.onSurfaceVariant)
                             b.campos.forEachIndexed { i, c ->
                                 val texto = textos[c.etiqueta].orEmpty()
                                 val err = c.error(texto)
@@ -554,7 +553,6 @@ private fun AsistenteTerminos(
             errorBloque?.let { MensajeError(it) }
         }
 
-        // Barra inferior de acciones
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -563,14 +561,14 @@ private fun AsistenteTerminos(
             OutlinedButton(
                 onClick = { if (paso == 0) onDismiss() else irA(paso - 1) },
                 enabled = !guardando,
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, ColorGrisBorde),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                shape = formas.medium,
+                border = BorderStroke(1.dp, cs.outlineVariant),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.onSurface),
                 modifier = Modifier.weight(1f).height(54.dp)
             ) {
                 Text(
                     if (paso == 0) "CERRAR" else "ATRÁS",
-                    fontWeight = FontWeight.Bold,
+                    style = tp.labelLarge,
                     letterSpacing = 1.sp
                 )
             }
@@ -590,29 +588,35 @@ private fun AsistenteTerminos(
     }
 }
 
-// Insignia numérica en degradado dorado (la misma de TarjetaPaso)
 @Composable
 private fun Insignia(numero: Int, tamano: Dp = 24.dp) {
+    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .size(tamano)
-            .background(Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)), CircleShape),
+            .background(Brush.linearGradient(listOf(cs.primary, cs.secondary)), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Text(numero.toString(), color = FondoNegroAbsoluto, fontSize = 11.sp, fontWeight = FontWeight.Black)
+        Text(
+            numero.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = cs.onPrimary,
+            fontWeight = FontWeight.Black
+        )
     }
 }
 
-// Etiqueta del paso: número, check si ya se guardó, degradado dorado si es el actual
+// Check si ya se guardó; degradado dorado si es el actual
 @Composable
 private fun ChipBloque(numero: Int, texto: String, actual: Boolean, hecho: Boolean, onClick: () -> Unit) {
-    val forma = RoundedCornerShape(20.dp)
-    val fondo = if (actual) Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)) else SolidColor(GrisCampos)
+    val cs = MaterialTheme.colorScheme
+    val forma = MaterialTheme.shapes.large
+    val fondo = if (actual) Brush.linearGradient(listOf(cs.primary, cs.secondary)) else SolidColor(cs.surfaceContainerHigh)
     Row(
         modifier = Modifier
             .clip(forma)
             .background(fondo)
-            .border(1.dp, if (actual || hecho) AmarilloMineroBrillante else Color.Transparent, forma)
+            .border(1.dp, if (actual || hecho) cs.primary else Color.Transparent, forma)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -622,60 +626,54 @@ private fun ChipBloque(numero: Int, texto: String, actual: Boolean, hecho: Boole
             modifier = Modifier
                 .size(18.dp)
                 .background(
-                    if (actual) FondoNegroAbsoluto else if (hecho) AmarilloMineroBrillante else ColorGrisBorde,
+                    if (actual) cs.onPrimary else if (hecho) cs.primary else cs.outlineVariant,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (hecho && !actual) {
-                Icon(Icons.Default.Check, null, tint = FondoNegroAbsoluto, modifier = Modifier.size(12.dp))
+                Icon(Icons.Default.Check, null, tint = cs.onPrimary, modifier = Modifier.size(12.dp))
             } else {
                 Text(
                     numero.toString(),
-                    fontSize = 10.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
-                    color = if (actual) AmarilloMineroBrillante else MaterialTheme.colorScheme.onSurface
+                    color = if (actual) cs.primary else cs.onSurface
                 )
             }
         }
         Text(
             texto,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (actual) FondoNegroAbsoluto else MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.labelMedium,
+            color = if (actual) cs.onPrimary else cs.onSurface
         )
     }
 }
 
-// Último paso: todos los términos guardados, agrupados por bloque; tocar uno abre ese bloque
+// Tocar un bloque lo abre para editarlo
 @Composable
 private fun ResumenFinal(actual: TerminosUi, guardados: List<Int>, onIrA: (Int) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(modifier = Modifier.padding(start = 4.dp)) {
-            Text(
-                "RESUMEN",
-                color = TextoGrisSecundario,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
-            )
+            Text("RESUMEN", style = tp.labelMedium, color = cs.onSurfaceVariant)
             Text(
                 if (guardados.isEmpty()) "No hiciste cambios en esta sesión."
                 else "${guardados.size} bloque${if (guardados.size == 1) "" else "s"} actualizado${if (guardados.size == 1) "" else "s"}.",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                style = tp.titleMedium,
+                color = cs.onSurface
             )
         }
         BLOQUES.forEachIndexed { i, b ->
             Aparecer(retardoMs = i * 70L) {
                 Surface(
                     onClick = { onIrA(i) },
-                    shape = RoundedCornerShape(20.dp),
-                    color = FondoNegroSecundario,
+                    shape = MaterialTheme.shapes.large,
+                    color = cs.surfaceContainer,
                     border = BorderStroke(
                         1.dp,
-                        if (i in guardados) AmarilloMineroBrillante.copy(alpha = 0.6f) else ColorGrisBorde
+                        if (i in guardados) cs.primary.copy(alpha = 0.6f) else cs.outlineVariant
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -687,28 +685,21 @@ private fun ResumenFinal(actual: TerminosUi, guardados: List<Int>, onIrA: (Int) 
                             Insignia(i + 1)
                             Text(
                                 b.titulo,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = tp.titleSmall,
+                                color = cs.onSurface,
                                 modifier = Modifier.weight(1f)
                             )
                             if (i in guardados) {
-                                Text(
-                                    "ACTUALIZADO",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.8.sp
-                                )
+                                Text("ACTUALIZADO", style = tp.labelSmall, color = cs.primary)
                             }
                         }
                         b.campos.forEach { c ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(c.etiqueta, color = TextoGrisSecundario, fontSize = 12.sp)
+                                Text(c.etiqueta, style = tp.bodySmall, color = cs.onSurfaceVariant)
                                 Text(
                                     "${num(c.leer(actual))} ${c.unidad}".trim(),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 12.sp,
+                                    style = tp.bodySmall,
+                                    color = cs.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

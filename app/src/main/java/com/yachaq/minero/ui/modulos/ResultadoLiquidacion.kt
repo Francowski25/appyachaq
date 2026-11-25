@@ -3,7 +3,6 @@ package com.yachaq.minero.ui.modulos
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Factory
 import androidx.compose.material3.*
@@ -12,9 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.model.ResponseCalculo
-import com.yachaq.minero.ui.theme.*
 import java.util.Locale
 
 private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
@@ -28,7 +25,7 @@ private data class DetalleCalculo(
 
 private data class BloqueDetalle(val titulo: String, val filas: List<DetalleCalculo>)
 
-// Resultado: total destacado, datos clave y desglose en 3 bloques
+// Total destacado, datos clave y desglose en 3 bloques
 @Composable
 fun ResultadoLiquidacion(
     resultado: ResponseCalculo,
@@ -94,11 +91,16 @@ fun ResultadoLiquidacion(
 
 @Composable
 private fun TotalDestacado(total: Double, planta: PlantaCalculo?) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val positivo = total >= 0
+    val acento = if (positivo) cs.primary else cs.error
+
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = FondoNegroSecundario,
-        border = BorderStroke(1.5.dp, (if (positivo) AmarilloMineroBrillante else ErrorRojo).copy(alpha = 0.7f)),
+        shape = formas.large,
+        color = cs.surfaceContainer,
+        border = BorderStroke(1.5.dp, acento.copy(alpha = 0.7f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -108,20 +110,17 @@ private fun TotalDestacado(total: Double, planta: PlantaCalculo?) {
         ) {
             Text(
                 "LIQUIDACIÓN TOTAL A PAGAR",
-                color = TextoGrisSecundario,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
+                style = tp.labelMedium,
+                color = cs.onSurfaceVariant
             )
             Text(
                 dolares(total),
-                color = if (positivo) AmarilloMineroBrillante else ErrorRojo,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Black
+                style = tp.displaySmall,
+                color = acento
             )
             if (planta != null) {
                 Spacer(Modifier.height(6.dp))
-                Surface(shape = RoundedCornerShape(20.dp), color = GrisCampos) {
+                Surface(shape = formas.large, color = cs.surfaceContainerHigh) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -130,10 +129,10 @@ private fun TotalDestacado(total: Double, planta: PlantaCalculo?) {
                         Icon(
                             imageVector = Icons.Default.Factory,
                             contentDescription = null,
-                            tint = AmarilloMineroBrillante,
+                            tint = cs.primary,
                             modifier = Modifier.size(14.dp)
                         )
-                        Text(planta.nombre, color = TextoBlancoSuave, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(planta.nombre, style = tp.labelMedium, color = cs.onSurface)
                     }
                 }
             }
@@ -143,17 +142,19 @@ private fun TotalDestacado(total: Double, planta: PlantaCalculo?) {
 
 @Composable
 private fun DatoClave(etiqueta: String, valor: String, unidad: String, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = FondoNegroSecundario,
-        border = BorderStroke(1.dp, ColorGrisBorde),
+        shape = MaterialTheme.shapes.large,
+        color = cs.surfaceContainer,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(etiqueta, color = TextoGrisSecundario, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+            Text(etiqueta, style = tp.labelSmall, color = cs.onSurfaceVariant)
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(valor, color = TextoBlancoSuave, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                Text(unidad, color = TextoGrisSecundario, fontSize = 11.sp, modifier = Modifier.padding(bottom = 3.dp))
+                Text(valor, style = tp.titleLarge, color = cs.onSurface, fontWeight = FontWeight.ExtraBold)
+                Text(unidad, style = tp.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.padding(bottom = 3.dp))
             }
         }
     }
@@ -162,34 +163,35 @@ private fun DatoClave(etiqueta: String, valor: String, unidad: String, modifier:
 @Composable
 private fun BloqueDesglose(bloque: BloqueDetalle) {
     if (bloque.filas.isEmpty()) return
+    val cs = MaterialTheme.colorScheme
+    val formas = MaterialTheme.shapes
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .width(3.dp)
                     .height(14.dp)
-                    .background(AmarilloMineroBrillante, RoundedCornerShape(2.dp))
+                    .background(cs.primary, formas.extraSmall)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 bloque.titulo,
-                color = AmarilloMineroBrillante,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                style = MaterialTheme.typography.labelMedium,
+                color = cs.primary
             )
         }
         Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = FondoNegroSecundario,
-            border = BorderStroke(1.dp, ColorGrisBorde),
+            shape = formas.medium,
+            color = cs.surfaceContainer,
+            border = BorderStroke(1.dp, cs.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
                 bloque.filas.forEachIndexed { i, fila ->
                     FilaDetalle(fila)
                     if (i < bloque.filas.lastIndex) {
-                        HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.5f))
+                        HorizontalDivider(color = cs.outlineVariant)
                     }
                 }
             }
@@ -200,6 +202,8 @@ private fun BloqueDesglose(bloque: BloqueDetalle) {
 // Los descuentos se muestran en rojo con signo negativo
 @Composable
 private fun FilaDetalle(fila: DetalleCalculo) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -207,12 +211,12 @@ private fun FilaDetalle(fila: DetalleCalculo) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(fila.label, color = TextoGrisSecundario, fontSize = 12.sp, modifier = Modifier.weight(1f))
+        Text(fila.label, style = tp.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.weight(1f))
         Text(
             text = if (fila.esDescuento) "- ${fila.valor}" else fila.valor,
-            color = if (fila.esDescuento) ErrorRojo else TextoBlancoSuave,
-            fontWeight = FontWeight.Medium,
-            fontSize = 12.sp
+            style = tp.bodySmall,
+            color = if (fila.esDescuento) cs.error else cs.onSurface,
+            fontWeight = FontWeight.Medium
         )
     }
 }

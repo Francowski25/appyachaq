@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,8 +36,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.ui.modulos.PerfilPantalla
-import com.yachaq.minero.ui.theme.AmarilloMinero
-import com.yachaq.minero.ui.theme.AmarilloMineroBrillante
 
 data class DrawerItem(
     val index: Int,
@@ -109,6 +106,9 @@ fun AppSidebar(
     onCerrarSesion: () -> Unit
 ) {
     val usuario = SesionUsuario.usuarioActual ?: return
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     val esRolAdmin = usuario.role?.trim()?.equals("admin", ignoreCase = true) == true
     val esPremium = usuario.isPremium || esRolAdmin
@@ -132,12 +132,12 @@ fun AppSidebar(
     ).filter { it.second.isNotEmpty() }
 
     val coloresItem = NavigationDrawerItemDefaults.colors(
-        selectedContainerColor = AmarilloMineroBrillante.copy(alpha = 0.16f),
+        selectedContainerColor = cs.primary.copy(alpha = 0.16f),
         unselectedContainerColor = Color.Transparent,
-        selectedIconColor = AmarilloMineroBrillante,
-        selectedTextColor = AmarilloMineroBrillante,
-        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        unselectedTextColor = MaterialTheme.colorScheme.onSurface
+        selectedIconColor = cs.primary,
+        selectedTextColor = cs.primary,
+        unselectedIconColor = cs.onSurfaceVariant,
+        unselectedTextColor = cs.onSurface
     )
 
     if (mostrarPerfil) {
@@ -145,7 +145,7 @@ fun AppSidebar(
     }
 
     ModalDrawerSheet(
-        drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        drawerContainerColor = cs.surfaceContainer,
         modifier = Modifier.width(300.dp)
     ) {
         Box(
@@ -154,9 +154,9 @@ fun AppSidebar(
                 .background(
                     Brush.verticalGradient(
                         colors = if (esPremium) {
-                            listOf(AmarilloMinero.copy(alpha = 0.30f), MaterialTheme.colorScheme.surface)
+                            listOf(cs.secondary.copy(alpha = 0.30f), cs.surface)
                         } else {
-                            listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface)
+                            listOf(cs.surface, cs.surface)
                         }
                     )
                 )
@@ -166,24 +166,24 @@ fun AppSidebar(
                 Surface(
                     modifier = Modifier
                         .size(64.dp)
-                        .border(2.dp, AmarilloMineroBrillante, CircleShape),
+                        .border(2.dp, cs.primary, CircleShape),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    color = cs.surfaceContainerHigh
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         val letras = iniciales(usuario.name)
                         if (letras.isNotEmpty()) {
                             Text(
                                 text = letras,
-                                fontSize = 22.sp,
+                                style = tp.headlineSmall,
                                 fontWeight = FontWeight.Black,
-                                color = AmarilloMineroBrillante
+                                color = cs.primary
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = AmarilloMineroBrillante,
+                                tint = cs.primary,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -192,38 +192,36 @@ fun AppSidebar(
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = usuario.name ?: "Usuario",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = tp.titleMedium,
+                    color = cs.onSurface,
                     maxLines = 1
                 )
                 Text(
                     text = usuario.email ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = tp.bodySmall,
+                    color = cs.onSurfaceVariant,
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = AmarilloMinero.copy(alpha = 0.2f),
-                        border = BorderStroke(1.dp, AmarilloMinero)
+                        shape = formas.small,
+                        color = cs.secondary.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, cs.secondary)
                     ) {
                         Text(
                             text = (usuario.role ?: "MINERO").uppercase(),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = AmarilloMineroBrillante
+                            style = tp.labelSmall,
+                            color = cs.primary
                         )
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (esPremium) AmarilloMineroBrillante else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, AmarilloMineroBrillante)
+                        shape = formas.small,
+                        color = if (esPremium) cs.primary else cs.surfaceContainerHigh,
+                        border = BorderStroke(1.dp, cs.primary)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -234,7 +232,7 @@ fun AppSidebar(
                                 Icon(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.surface,
+                                    tint = cs.onPrimary,
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -244,10 +242,9 @@ fun AppSidebar(
                                     usuario.isPremium -> "PREMIUM"
                                     else -> "FREE"
                                 },
-                                style = MaterialTheme.typography.labelSmall,
+                                style = tp.labelSmall,
                                 fontWeight = FontWeight.Black,
-                                color = if (esPremium) MaterialTheme.colorScheme.surface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (esPremium) cs.onPrimary else cs.onSurfaceVariant
                             )
                         }
                     }
@@ -255,7 +252,7 @@ fun AppSidebar(
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        HorizontalDivider(color = cs.outlineVariant)
 
         Column(
             modifier = Modifier
@@ -271,13 +268,14 @@ fun AppSidebar(
                         label = {
                             Text(
                                 text = item.label,
+                                style = tp.labelLarge,
                                 fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
                             )
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         selected = seleccionado,
                         onClick = { onSeleccionarTab(item.index) },
-                        shape = RoundedCornerShape(14.dp),
+                        shape = formas.medium,
                         colors = coloresItem,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
@@ -285,24 +283,24 @@ fun AppSidebar(
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        HorizontalDivider(color = cs.outlineVariant)
 
         NavigationDrawerItem(
-            label = { Text("Mi Perfil", fontWeight = FontWeight.Medium) },
+            label = { Text("Mi Perfil", style = tp.labelLarge, fontWeight = FontWeight.Medium) },
             icon = { Icon(Icons.Default.Person, contentDescription = null) },
             selected = mostrarPerfil,
             onClick = { mostrarPerfil = true },
-            shape = RoundedCornerShape(14.dp),
+            shape = formas.medium,
             colors = coloresItem,
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp)
         )
 
         NavigationDrawerItem(
-            label = { Text("Cerrar Sesión", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
-            icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            label = { Text("Cerrar Sesión", style = tp.labelLarge, color = cs.error) },
+            icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = cs.error) },
             selected = false,
             onClick = onCerrarSesion,
-            shape = RoundedCornerShape(14.dp),
+            shape = formas.medium,
             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 12.dp)
         )

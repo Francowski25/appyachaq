@@ -3,13 +3,14 @@ package com.yachaq.minero.ui.modulos
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
@@ -37,11 +38,9 @@ import com.yachaq.minero.data.remote.model.ResponseHistorial
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.logica.ExportadorPdf
 import com.yachaq.minero.logica.FormateadorFecha
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.widget.Toast
 import java.util.Locale
 
 private fun dolares(v: Double) = "$ " + String.format(Locale.US, "%,.2f", v)
@@ -53,6 +52,9 @@ fun HistorialPantalla() {
 
 @Composable
 private fun HistorialBloqueado() {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+
     Box(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center
@@ -64,30 +66,26 @@ private fun HistorialBloqueado() {
             Icon(
                 Icons.Default.Lock,
                 contentDescription = null,
-                tint = AmarilloMineroBrillante,
+                tint = cs.primary,
                 modifier = Modifier.size(48.dp)
             )
             Text(
                 "Historial exclusivo",
-                fontSize = 18.sp,
+                style = tp.titleLarge,
                 fontWeight = FontWeight.Black,
-                color = TextoBlancoSuave
+                color = cs.onSurface
             )
             Text(
                 "El historial de liquidaciones está disponible para administradores y usuarios Premium.",
-                fontSize = 12.sp,
-                color = TextoGrisSecundario,
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Button(
                 onClick = { SesionUsuario.alternarPlanPremiumSimulado() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AmarilloMineroBrillante,
-                    contentColor = FondoNegroAbsoluto
-                ),
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
-                Text("ACTIVAR PREMIUM (SIMULACIÓN)", fontWeight = FontWeight.Bold)
+                Text("ACTIVAR PREMIUM (SIMULACIÓN)", style = tp.labelLarge)
             }
         }
     }
@@ -95,6 +93,9 @@ private fun HistorialBloqueado() {
 
 @Composable
 private fun HistorialContenido() {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val idUser = SesionUsuario.usuarioActual?.idUser
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -133,7 +134,6 @@ private fun HistorialContenido() {
         }
     }
 
-    // Se ejecuta después de que el usuario confirma en el diálogo
     val iniciarExportacion: (ResponseHistorial) -> Unit = { reg ->
         val necesitaPermiso = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
                 ContextCompat.checkSelfPermission(
@@ -194,15 +194,15 @@ private fun HistorialContenido() {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
                 text = "HISTORIAL DE LIQUIDACIONES",
-                color = AmarilloMineroBrillante,
-                fontSize = 20.sp,
+                style = tp.titleLarge,
+                color = cs.primary,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.2.sp
             )
             Text(
                 text = "Registro histórico de cálculos y liquidaciones de concentrado",
-                color = TextoGrisSecundario,
-                fontSize = 12.sp
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant
             )
 
             Spacer(Modifier.height(16.dp))
@@ -217,15 +217,19 @@ private fun HistorialContenido() {
                     onValueChange = { textoBusqueda = it },
                     label = { Text("Buscar por mineral...") },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = AmarilloMineroBrillante)
+                        Icon(Icons.Default.Search, contentDescription = null, tint = cs.primary)
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = formas.large,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-                        focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-                        focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-                        focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
+                        focusedContainerColor = cs.surfaceContainerHigh,
+                        unfocusedContainerColor = cs.surfaceContainerHigh,
+                        focusedBorderColor = cs.primary,
+                        unfocusedBorderColor = cs.outlineVariant,
+                        focusedLabelColor = cs.primary,
+                        unfocusedLabelColor = cs.onSurfaceVariant,
+                        focusedTextColor = cs.onSurface,
+                        unfocusedTextColor = cs.onSurface
                     ),
                     modifier = Modifier.weight(1f)
                 )
@@ -237,7 +241,7 @@ private fun HistorialContenido() {
                     Icon(
                         imageVector = Icons.Default.DeleteSweep,
                         contentDescription = "Eliminar todo el historial",
-                        tint = if (registros.isNotEmpty()) ErrorRojo else TextoGrisSecundario,
+                        tint = if (registros.isNotEmpty()) cs.error else cs.onSurfaceVariant,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -247,9 +251,8 @@ private fun HistorialContenido() {
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = if (filtrados.size == 1) "1 liquidación" else "${filtrados.size} liquidaciones",
-                    color = TextoGrisSecundario,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    style = tp.labelMedium,
+                    color = cs.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
             } else {
@@ -258,14 +261,14 @@ private fun HistorialContenido() {
 
             when {
                 cargando -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = AmarilloMineroBrillante)
+                    CircularProgressIndicator(color = cs.primary)
                 }
 
                 error != null -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(error.orEmpty(), color = ErrorRojo, fontSize = 13.sp, textAlign = TextAlign.Center)
+                        Text(error.orEmpty(), style = tp.bodyMedium, color = cs.error, textAlign = TextAlign.Center)
                         TextButton(onClick = { recargar++ }) {
-                            Text("REINTENTAR", color = AmarilloMineroBrillante)
+                            Text("REINTENTAR", style = tp.labelLarge, color = cs.primary)
                         }
                     }
                 }
@@ -276,12 +279,17 @@ private fun HistorialContenido() {
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(24.dp)
                     ) {
-                        Icon(Icons.Default.SearchOff, contentDescription = null, tint = ErrorRojo, modifier = Modifier.size(48.dp))
-                        Text("Sin Registros en el Historial", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextoBlancoSuave)
+                        Icon(
+                            Icons.Default.SearchOff,
+                            contentDescription = null,
+                            tint = cs.onSurfaceVariant,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text("Sin Registros en el Historial", style = tp.titleMedium, color = cs.onSurface)
                         Text(
                             "No se encontraron liquidaciones realizadas o coincidentes.",
-                            fontSize = 12.sp,
-                            color = TextoGrisSecundario,
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -308,14 +316,22 @@ private fun HistorialContenido() {
     if (mostrarDialogoEliminarGlobal) {
         AlertDialog(
             onDismissRequest = { if (!eliminandoGlobal) mostrarDialogoEliminarGlobal = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = FondoNegroSecundario,
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = ErrorRojo, modifier = Modifier.size(32.dp)) },
-            title = { Text("¿Eliminar Historial Completo?", fontWeight = FontWeight.Black, fontSize = 18.sp, color = AmarilloMineroBrillante) },
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = cs.error, modifier = Modifier.size(32.dp)) },
+            title = {
+                Text("¿Eliminar Historial Completo?", style = tp.titleLarge, fontWeight = FontWeight.Black, color = cs.primary)
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Se eliminarán TODOS tus cálculos guardados. Esta acción no se puede deshacer.", fontSize = 13.sp, color = TextoGrisSecundario)
-                    mensajeErrorGlobal?.let { Text(it, color = ErrorRojo, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                    Text(
+                        "Se eliminarán TODOS tus cálculos guardados. Esta acción no se puede deshacer.",
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
+                    )
+                    mensajeErrorGlobal?.let {
+                        Text(it, style = tp.bodySmall, color = cs.error, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = {
@@ -340,16 +356,16 @@ private fun HistorialContenido() {
                         }
                     },
                     enabled = !eliminandoGlobal,
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRojo, contentColor = TextoBlancoSuave),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.error, contentColor = cs.onError),
+                    shape = formas.medium
                 ) {
-                    if (eliminandoGlobal) CircularProgressIndicator(color = TextoBlancoSuave, modifier = Modifier.size(18.dp))
-                    else Text("Sí, eliminar todo", fontWeight = FontWeight.Bold)
+                    if (eliminandoGlobal) CircularProgressIndicator(color = cs.onError, modifier = Modifier.size(18.dp))
+                    else Text("Sí, eliminar todo", style = tp.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoEliminarGlobal = false }, enabled = !eliminandoGlobal) {
-                    Text("Cancelar", color = TextoGrisSecundario)
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
             }
         )
@@ -358,14 +374,22 @@ private fun HistorialContenido() {
     if (idParaEliminar != null) {
         AlertDialog(
             onDismissRequest = { if (!eliminandoIndividual) idParaEliminar = null },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = FondoNegroSecundario,
-            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ErrorRojo, modifier = Modifier.size(32.dp)) },
-            title = { Text("¿Eliminar este cálculo?", fontWeight = FontWeight.Black, fontSize = 18.sp, color = AmarilloMineroBrillante) },
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
+            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = cs.error, modifier = Modifier.size(32.dp)) },
+            title = {
+                Text("¿Eliminar este cálculo?", style = tp.titleLarge, fontWeight = FontWeight.Black, color = cs.primary)
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Este cálculo se borrará permanentemente de tu historial.", fontSize = 13.sp, color = TextoGrisSecundario)
-                    mensajeErrorIndividual?.let { Text(it, color = ErrorRojo, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                    Text(
+                        "Este cálculo se borrará permanentemente de tu historial.",
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
+                    )
+                    mensajeErrorIndividual?.let {
+                        Text(it, style = tp.bodySmall, color = cs.error, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = {
@@ -390,16 +414,16 @@ private fun HistorialContenido() {
                         }
                     },
                     enabled = !eliminandoIndividual,
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRojo, contentColor = TextoBlancoSuave),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.error, contentColor = cs.onError),
+                    shape = formas.medium
                 ) {
-                    if (eliminandoIndividual) CircularProgressIndicator(color = TextoBlancoSuave, modifier = Modifier.size(18.dp))
-                    else Text("Sí, eliminar", fontWeight = FontWeight.Bold)
+                    if (eliminandoIndividual) CircularProgressIndicator(color = cs.onError, modifier = Modifier.size(18.dp))
+                    else Text("Sí, eliminar", style = tp.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { idParaEliminar = null }, enabled = !eliminandoIndividual) {
-                    Text("Cancelar", color = TextoGrisSecundario)
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
             }
         )
@@ -408,34 +432,27 @@ private fun HistorialContenido() {
     registroParaExportar?.let { reg ->
         AlertDialog(
             onDismissRequest = { registroParaExportar = null },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = FondoNegroSecundario,
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
             icon = {
                 Icon(
                     Icons.Default.PictureAsPdf,
                     contentDescription = null,
-                    tint = AmarilloMineroBrillante,
+                    tint = cs.primary,
                     modifier = Modifier.size(32.dp)
                 )
             },
             title = {
-                Text(
-                    "¿Exportar liquidación a PDF?",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 18.sp,
-                    color = AmarilloMineroBrillante
-                )
+                Text("¿Exportar liquidación a PDF?", style = tp.titleLarge, fontWeight = FontWeight.Black, color = cs.primary)
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Se generará un PDF con el detalle completo de este cálculo " +
-                                "(${reg.material ?: "sin mineral"}) y se guardará en la carpeta " +
-                                "Descargas de tu teléfono.",
-                        fontSize = 13.sp,
-                        color = TextoGrisSecundario
-                    )
-                }
+                Text(
+                    "Se generará un PDF con el detalle completo de este cálculo " +
+                            "(${reg.material ?: "sin mineral"}) y se guardará en la carpeta " +
+                            "Descargas de tu teléfono.",
+                    style = tp.bodyMedium,
+                    color = cs.onSurfaceVariant
+                )
             },
             confirmButton = {
                 Button(
@@ -443,18 +460,14 @@ private fun HistorialContenido() {
                         registroParaExportar = null
                         iniciarExportacion(reg)
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = formas.medium
                 ) {
-                    Text("Sí, exportar", fontWeight = FontWeight.Bold)
+                    Text("Sí, exportar", style = tp.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { registroParaExportar = null }) {
-                    Text("Cancelar", color = TextoGrisSecundario)
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
             }
         )
@@ -477,19 +490,20 @@ fun TarjetaHistorialCard(
     onEliminar: () -> Unit = {},
     onExportar: () -> Unit = {}
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val hayCu = (registro.leyCu ?: 0.0) > 0.0
     val hayAg = (registro.leyAg ?: 0.0) > 0.0
     val hayAu = (registro.leyAu ?: 0.0) > 0.0
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, ColorGrisBorde),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        shape = formas.large,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-
-            // Encabezado: mineral, fecha y planta
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -501,25 +515,24 @@ fun TarjetaHistorialCard(
                 ) {
                     Text(
                         text = registro.material ?: "Sin mineral",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoBlancoSuave
+                        style = tp.titleMedium,
+                        color = cs.onSurface
                     )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = TextoGrisSecundario, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(13.dp))
                         Text(
                             text = registro.calculatedAt?.let { FormateadorFecha.formatearParaMostrar(it) } ?: "-",
-                            fontSize = 12.sp,
-                            color = TextoGrisSecundario
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant
                         )
                     }
                     if (!registro.plantName.isNullOrBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Icon(Icons.Default.Factory, contentDescription = null, tint = TextoGrisSecundario, modifier = Modifier.size(13.dp))
+                            Icon(Icons.Default.Factory, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(13.dp))
                             Text(
                                 text = registro.plantName.orEmpty(),
-                                fontSize = 12.sp,
-                                color = TextoGrisSecundario,
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -534,44 +547,36 @@ fun TarjetaHistorialCard(
                 }
             }
 
-            HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.6f))
+            HorizontalDivider(color = cs.outlineVariant)
 
-            // Total y cantidades
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(
-                        "TOTAL A PAGAR",
-                        fontSize = 10.sp,
-                        color = TextoGrisSecundario,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
+                    Text("TOTAL A PAGAR", style = tp.labelSmall, color = cs.onSurfaceVariant)
                     Text(
                         text = dolares(registro.totalAPagar ?: 0.0),
-                        fontSize = 24.sp,
+                        style = tp.headlineMedium,
                         fontWeight = FontWeight.Black,
-                        color = AmarilloMineroBrillante
+                        color = cs.primary
                     )
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         "${String.format(Locale.US, "%,.2f", registro.tonelaje ?: 0.0)} TM brutas",
-                        fontSize = 11.sp,
-                        color = TextoGrisSecundario
+                        style = tp.bodySmall,
+                        color = cs.onSurfaceVariant
                     )
                     Text(
                         "${String.format(Locale.US, "%,.2f", registro.tmns ?: 0.0)} TMNS secas",
-                        fontSize = 11.sp,
-                        color = TextoGrisSecundario
+                        style = tp.bodySmall,
+                        color = cs.onSurfaceVariant
                     )
                 }
             }
 
-            // Acciones
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -579,34 +584,30 @@ fun TarjetaHistorialCard(
             ) {
                 Button(
                     onClick = onClickDetalle,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    ),
+                    shape = formas.medium,
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     modifier = Modifier.weight(1f).height(42.dp)
                 ) {
                     Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Ver detalle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Ver detalle", style = tp.labelMedium)
                 }
 
                 FilledIconButton(
                     onClick = onExportar,
                     enabled = !exportando,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = formas.medium,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = GrisCampos,
-                        contentColor = AmarilloMineroBrillante,
-                        disabledContainerColor = GrisCampos,
-                        disabledContentColor = AmarilloMineroBrillante
+                        containerColor = cs.surfaceContainerHigh,
+                        contentColor = cs.primary,
+                        disabledContainerColor = cs.surfaceContainerHigh,
+                        disabledContentColor = cs.primary
                     ),
                     modifier = Modifier.size(42.dp)
                 ) {
                     if (exportando) {
                         CircularProgressIndicator(
-                            color = AmarilloMineroBrillante,
+                            color = cs.primary,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(18.dp)
                         )
@@ -621,10 +622,10 @@ fun TarjetaHistorialCard(
 
                 FilledIconButton(
                     onClick = onEliminar,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = formas.medium,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = ErrorRojo.copy(alpha = 0.12f),
-                        contentColor = ErrorRojo
+                        containerColor = cs.error.copy(alpha = 0.12f),
+                        contentColor = cs.error
                     ),
                     modifier = Modifier.size(42.dp)
                 ) {
@@ -641,12 +642,12 @@ fun TarjetaHistorialCard(
 
 @Composable
 private fun EtiquetaMetal(texto: String) {
-    Surface(shape = RoundedCornerShape(50), color = GrisCampos) {
+    val cs = MaterialTheme.colorScheme
+    Surface(shape = CircleShape, color = cs.surfaceContainerHigh) {
         Text(
             text = texto,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            color = AmarilloMineroBrillante,
+            style = MaterialTheme.typography.labelSmall,
+            color = cs.primary,
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
         )
     }

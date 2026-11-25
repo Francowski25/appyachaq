@@ -30,6 +30,9 @@ fun LoginPantalla(
     onLoginExitoso: (LoginResponse) -> Unit,
     onIrARegistro: () -> Unit = {}
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var errorCorreo by remember { mutableStateOf<String?>(null) }
@@ -119,16 +122,15 @@ fun LoginPantalla(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "YACHAQ MINERO",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
+                            style = tp.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            color = cs.primary,
                             letterSpacing = 2.sp
                         )
                         Text(
                             text = "Gestión y cálculo minero",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
+                            style = tp.bodyMedium,
+                            color = cs.onSurfaceVariant
                         )
                     }
                 }
@@ -139,14 +141,13 @@ fun LoginPantalla(
                     TarjetaAuth {
                         Text(
                             text = "Iniciar sesión",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = tp.titleLarge,
+                            color = cs.onSurface
                         )
                         Text(
                             text = "Ingresa con tu cuenta para continuar",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -194,9 +195,8 @@ fun LoginPantalla(
                             ) {
                                 Text(
                                     text = "¿Olvidaste tu contraseña?",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    style = tp.labelMedium,
+                                    color = cs.primary
                                 )
                             }
                         }
@@ -219,15 +219,14 @@ fun LoginPantalla(
                     ) {
                         Text(
                             text = "¿No tienes una cuenta? ",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = tp.bodyMedium,
+                            color = cs.onSurfaceVariant
                         )
                         TextButton(onClick = onIrARegistro, contentPadding = PaddingValues(0.dp)) {
                             Text(
                                 text = "Regístrate aquí",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                style = tp.labelLarge,
+                                color = cs.primary
                             )
                         }
                     }

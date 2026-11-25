@@ -14,7 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -41,20 +40,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.R
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.delay
 
 // Fondo degradado con un resplandor dorado sutil
 @Composable
 fun AuthFondo(content: @Composable BoxScope.() -> Unit) {
+    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
-                )
-            )
+            .background(Brush.verticalGradient(listOf(cs.surface, cs.surfaceContainer)))
     ) {
         Box(
             modifier = Modifier
@@ -62,7 +57,7 @@ fun AuthFondo(content: @Composable BoxScope.() -> Unit) {
                 .align(Alignment.TopEnd)
                 .offset(x = 120.dp, y = (-120).dp)
                 .background(
-                    Brush.radialGradient(listOf(AmarilloMinero.copy(alpha = 0.18f), Color.Transparent)),
+                    Brush.radialGradient(listOf(cs.secondary.copy(alpha = 0.18f), Color.Transparent)),
                     CircleShape
                 )
         )
@@ -70,7 +65,7 @@ fun AuthFondo(content: @Composable BoxScope.() -> Unit) {
     }
 }
 
-// Entrada animada (fade + deslizamiento) con retardo opcional para escalonar elementos
+// Entrada animada (fade + deslizamiento); el retardo escalona los elementos
 @Composable
 fun Aparecer(retardoMs: Long = 0, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }
@@ -88,17 +83,19 @@ fun Aparecer(retardoMs: Long = 0, content: @Composable () -> Unit) {
 
 @Composable
 fun AuthLogo(tamano: Dp = 104.dp) {
+    val cs = MaterialTheme.colorScheme
+    val forma = MaterialTheme.shapes.extraLarge
     Card(
         modifier = Modifier
             .size(tamano)
             .border(
                 width = 2.dp,
-                brush = Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)),
-                shape = RoundedCornerShape(24.dp)
+                brush = Brush.linearGradient(listOf(cs.primary, cs.secondary)),
+                shape = forma
             ),
-        shape = RoundedCornerShape(24.dp),
+        shape = forma,
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer)
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Image(
@@ -116,11 +113,12 @@ fun TarjetaAuth(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = FondoNegroSecundario,
-        border = BorderStroke(1.dp, ColorGrisBorde)
+        shape = MaterialTheme.shapes.extraLarge,
+        color = cs.surfaceContainer,
+        border = BorderStroke(1.dp, cs.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(20.dp), content = content)
     }
@@ -141,6 +139,7 @@ fun CampoAuth(
     enabled: Boolean = true,
     onPerderFoco: () -> Unit = {}
 ) {
+    val cs = MaterialTheme.colorScheme
     var visible by remember { mutableStateOf(false) }
     var tuvoFoco by remember { mutableStateOf(false) }
 
@@ -149,7 +148,7 @@ fun CampoAuth(
         onValueChange = onValorChange,
         label = { Text(etiqueta) },
         leadingIcon = {
-            Icon(imageVector = icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(imageVector = icono, contentDescription = null, tint = cs.primary)
         },
         trailingIcon = if (esClave) {
             {
@@ -157,7 +156,7 @@ fun CampoAuth(
                     Icon(
                         imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = cs.onSurfaceVariant
                     )
                 }
             }
@@ -175,14 +174,18 @@ fun CampoAuth(
         ),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos,
-            unfocusedContainerColor = GrisCampos,
-            errorContainerColor = GrisCampos,
-            disabledContainerColor = GrisCampos,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.Transparent
+            focusedContainerColor = cs.surfaceContainerHigh,
+            unfocusedContainerColor = cs.surfaceContainerHigh,
+            errorContainerColor = cs.surfaceContainerHigh,
+            disabledContainerColor = cs.surfaceContainerHigh,
+            focusedBorderColor = cs.primary,
+            unfocusedBorderColor = Color.Transparent,
+            focusedLabelColor = cs.primary,
+            unfocusedLabelColor = cs.onSurfaceVariant,
+            focusedTextColor = cs.onSurface,
+            unfocusedTextColor = cs.onSurface
         ),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { estado ->
@@ -200,27 +203,31 @@ fun BotonAuth(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val cs = MaterialTheme.colorScheme
     Button(
         onClick = onClick,
         enabled = enabled && !cargando,
         modifier = modifier.fillMaxWidth().height(54.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = if (cargando) 0.7f else 0.35f),
-            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+            disabledContainerColor = cs.primary.copy(alpha = if (cargando) 0.7f else 0.35f),
+            disabledContentColor = cs.onPrimary.copy(alpha = 0.8f)
         )
     ) {
         AnimatedContent(targetState = cargando, label = "contenidoBoton") { enCarga ->
             if (enCarga) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = cs.onPrimary,
                     strokeWidth = 2.dp
                 )
             } else {
-                Text(text = texto, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 1.5.sp)
+                Text(
+                    text = texto,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp
+                )
             }
         }
     }
@@ -229,6 +236,7 @@ fun BotonAuth(
 // Mensaje animado de error o de éxito
 @Composable
 fun MensajeAuth(mensaje: String?, esError: Boolean, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
     var ultimo by remember { mutableStateOf(mensaje ?: "") }
     if (mensaje != null) ultimo = mensaje
 
@@ -238,11 +246,11 @@ fun MensajeAuth(mensaje: String?, esError: Boolean, modifier: Modifier = Modifie
         exit = fadeOut() + shrinkVertically(),
         modifier = modifier
     ) {
-        val color = if (esError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+        val color = if (esError) cs.error else cs.primary
         Column {
             Spacer(modifier = Modifier.height(10.dp))
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.small,
                 color = color.copy(alpha = 0.12f),
                 modifier = Modifier.fillMaxWidth()
             ) {

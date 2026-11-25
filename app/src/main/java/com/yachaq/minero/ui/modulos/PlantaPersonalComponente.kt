@@ -3,7 +3,7 @@ package com.yachaq.minero.ui.modulos
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -18,7 +18,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yachaq.minero.data.remote.model.RequestUserPlant
 import com.yachaq.minero.data.remote.model.ResponseUserPlant
-import com.yachaq.minero.ui.theme.*
 
 @Composable
 fun DialogoPlantaPersonal(
@@ -28,6 +27,10 @@ fun DialogoPlantaPersonal(
     onGuardar: (RequestUserPlant) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
+
     var nombre by remember(planta) { mutableStateOf(planta?.name.orEmpty()) }
     var ubicacion by remember(planta) { mutableStateOf(planta?.location.orEmpty()) }
     var capacidad by remember(planta) {
@@ -88,9 +91,9 @@ fun DialogoPlantaPersonal(
                 .fillMaxWidth(0.94f)
                 .widthIn(max = 520.dp)
                 .heightIn(max = 780.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = FondoNegroSecundario,
-            border = BorderStroke(1.dp, ColorGrisBorde),
+            shape = formas.extraLarge,
+            color = cs.surfaceContainer,
+            border = BorderStroke(1.dp, cs.outlineVariant),
             tonalElevation = 8.dp
         ) {
             Column(
@@ -100,27 +103,24 @@ fun DialogoPlantaPersonal(
                     .padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // Encabezado
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(
-                        shape = RoundedCornerShape(50),
-                        color = AmarilloMineroBrillante.copy(alpha = 0.13f)
+                        shape = CircleShape,
+                        color = cs.primary.copy(alpha = 0.13f)
                     ) {
                         Text(
                             text = "GESTIÓN DE PLANTAS",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = AmarilloMineroBrillante,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = tp.labelSmall,
+                            color = cs.primary,
                             letterSpacing = 1.1.sp
                         )
                     }
 
                     Text(
                         text = if (esEdicion) "Editar planta" else "Nueva planta personal",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoBlancoSuave
+                        style = tp.headlineSmall,
+                        color = cs.onSurface
                     )
 
                     Text(
@@ -128,15 +128,13 @@ fun DialogoPlantaPersonal(
                             "Actualiza la información y las condiciones de operación."
                         else
                             "Registra una planta para utilizarla en tus cálculos mineros.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextoGrisSecundario,
-                        lineHeight = 19.sp
+                        style = tp.bodySmall,
+                        color = cs.onSurfaceVariant
                     )
                 }
 
-                HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.8f))
+                HorizontalDivider(color = cs.outlineVariant)
 
-                // Datos generales
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     TituloSeccionPlanta(
                         titulo = "Información general",
@@ -164,7 +162,6 @@ fun DialogoPlantaPersonal(
                     )
                 }
 
-                // Parámetros operativos
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     TituloSeccionPlanta(
                         titulo = "Parámetros operativos",
@@ -196,7 +193,6 @@ fun DialogoPlantaPersonal(
                     )
                 }
 
-                // Estado
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     TituloSeccionPlanta(
                         titulo = "Estado de la planta",
@@ -229,27 +225,25 @@ fun DialogoPlantaPersonal(
                     }
                 }
 
-                // Mensaje de validación o error de API
                 if (mensajeError != null) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = ErrorRojo.copy(alpha = 0.10f),
-                        border = BorderStroke(1.dp, ErrorRojo.copy(alpha = 0.35f))
+                        shape = formas.small,
+                        color = cs.error.copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, cs.error.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = mensajeError,
                             modifier = Modifier.padding(12.dp),
-                            color = ErrorRojo,
-                            style = MaterialTheme.typography.bodySmall,
+                            color = cs.error,
+                            style = tp.bodySmall,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
 
-                HorizontalDivider(color = ColorGrisBorde.copy(alpha = 0.8f))
+                HorizontalDivider(color = cs.outlineVariant)
 
-                // Acciones
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -259,44 +253,34 @@ fun DialogoPlantaPersonal(
                         onClick = onDismiss,
                         enabled = !guardando,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = formas.medium
                     ) {
-                        Text(
-                            text = "Cancelar",
-                            color = TextoGrisSecundario,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                     }
 
                     Button(
                         onClick = ::guardar,
                         enabled = !guardando,
                         modifier = Modifier.weight(1.35f),
-                        shape = RoundedCornerShape(14.dp),
-                        contentPadding = PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 13.dp
-                        ),
+                        shape = formas.medium,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 13.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = AmarilloMineroBrillante,
-                            contentColor = FondoNegroAbsoluto,
-                            disabledContainerColor = AmarilloMineroBrillante.copy(alpha = 0.45f),
-                            disabledContentColor = FondoNegroAbsoluto.copy(alpha = 0.65f)
+                            disabledContainerColor = cs.primary.copy(alpha = 0.45f),
+                            disabledContentColor = cs.onPrimary.copy(alpha = 0.65f)
                         )
                     ) {
                         if (guardando) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
-                                color = FondoNegroAbsoluto,
+                                color = cs.onPrimary,
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(9.dp))
-                            Text("Guardando", fontWeight = FontWeight.Bold)
+                            Text("Guardando", style = tp.labelLarge)
                         } else {
                             Text(
                                 text = if (esEdicion) "Guardar cambios" else "Registrar planta",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                                style = tp.labelLarge
                             )
                         }
                     }
@@ -311,18 +295,10 @@ private fun TituloSeccionPlanta(
     titulo: String,
     descripcion: String
 ) {
+    val cs = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = titulo,
-            color = TextoBlancoSuave,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = descripcion,
-            color = TextoGrisSecundario,
-            style = MaterialTheme.typography.bodySmall
-        )
+        Text(text = titulo, style = MaterialTheme.typography.titleSmall, color = cs.onSurface)
+        Text(text = descripcion, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
     }
 }
 
@@ -335,21 +311,17 @@ private fun OpcionEstadoPlanta(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Surface(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = if (seleccionada)
-            AmarilloMineroBrillante.copy(alpha = 0.12f)
-        else
-            GrisCampos,
+        shape = MaterialTheme.shapes.medium,
+        color = if (seleccionada) cs.primary.copy(alpha = 0.12f) else cs.surfaceContainerHigh,
         border = BorderStroke(
             width = if (seleccionada) 1.5.dp else 1.dp,
-            color = if (seleccionada)
-                AmarilloMineroBrillante
-            else
-                ColorGrisBorde
+            color = if (seleccionada) cs.primary else cs.outlineVariant
         )
     ) {
         Column(
@@ -366,23 +338,21 @@ private fun OpcionEstadoPlanta(
                     enabled = enabled,
                     modifier = Modifier.size(20.dp),
                     colors = RadioButtonDefaults.colors(
-                        selectedColor = AmarilloMineroBrillante,
-                        unselectedColor = TextoGrisSecundario
+                        selectedColor = cs.primary,
+                        unselectedColor = cs.onSurfaceVariant
                     )
                 )
                 Text(
                     text = texto,
-                    color = if (seleccionada) AmarilloMineroBrillante else TextoBlancoSuave,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    style = tp.labelMedium,
+                    color = if (seleccionada) cs.primary else cs.onSurface
                 )
             }
             Text(
                 text = descripcion,
                 modifier = Modifier.padding(start = 27.dp),
-                color = TextoGrisSecundario,
-                fontSize = 10.sp,
-                lineHeight = 14.sp
+                style = tp.labelSmall,
+                color = cs.onSurfaceVariant
             )
         }
     }
@@ -397,35 +367,34 @@ private fun CampoPlantaPersonal(
     enabled: Boolean = true,
     onCambio: (String) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     OutlinedTextField(
         value = valor,
         onValueChange = onCambio,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(etiqueta) },
         suffix = sufijo?.let { texto ->
-            { Text(texto, color = TextoGrisSecundario, fontSize = 11.sp) }
+            { Text(texto, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant) }
         },
         enabled = enabled,
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Text
         ),
-        shape = RoundedCornerShape(14.dp),
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.Medium
-        ),
+        shape = MaterialTheme.shapes.medium,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos,
-            unfocusedContainerColor = GrisCampos,
-            disabledContainerColor = GrisCampos.copy(alpha = 0.6f),
-            focusedBorderColor = AmarilloMineroBrillante,
-            unfocusedBorderColor = ColorGrisBorde,
-            disabledBorderColor = ColorGrisBorde.copy(alpha = 0.5f),
-            focusedLabelColor = AmarilloMineroBrillante,
-            unfocusedLabelColor = TextoGrisSecundario,
-            focusedTextColor = TextoBlancoSuave,
-            unfocusedTextColor = TextoBlancoSuave,
-            disabledTextColor = TextoGrisSecundario
+            focusedContainerColor = cs.surfaceContainerHigh,
+            unfocusedContainerColor = cs.surfaceContainerHigh,
+            disabledContainerColor = cs.surfaceContainerHigh.copy(alpha = 0.6f),
+            focusedBorderColor = cs.primary,
+            unfocusedBorderColor = cs.outlineVariant,
+            disabledBorderColor = cs.outlineVariant.copy(alpha = 0.5f),
+            focusedLabelColor = cs.primary,
+            unfocusedLabelColor = cs.onSurfaceVariant,
+            focusedTextColor = cs.onSurface,
+            unfocusedTextColor = cs.onSurface,
+            disabledTextColor = cs.onSurfaceVariant
         )
     )
 }

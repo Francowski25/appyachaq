@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Close
@@ -45,12 +45,11 @@ import androidx.compose.ui.window.DialogProperties
 import com.yachaq.minero.R
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.ResponsePlant
+import com.yachaq.minero.ui.theme.AdvertenciaNaranja
+import com.yachaq.minero.ui.theme.ExitoVerde
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
-
-private val ColorOperativa = Color(0xFF4CAF50)
-private val ColorMantenimiento = Color(0xFFFF9800)
 
 private fun ResponsePlant.esOperativa() = status.equals("Operativa", ignoreCase = true)
 
@@ -63,6 +62,8 @@ private fun formatoNumero(valor: Double): String =
 @Composable
 fun PlantaPantalla() {
     val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
 
     var plantas by remember { mutableStateOf<List<ResponsePlant>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
@@ -120,15 +121,14 @@ fun PlantaPantalla() {
                 Column {
                     Text(
                         text = "Plantas Procesadoras",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        style = tp.titleLarge,
+                        color = cs.primary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Vista general y listado de plantas procesadoras en Apurímac.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
                     )
                 }
             }
@@ -143,7 +143,7 @@ fun PlantaPantalla() {
                 error != null && plantas.isEmpty() -> item(key = "error") {
                     EstadoMensaje(
                         icono = Icons.Default.CloudOff,
-                        colorIcono = MaterialTheme.colorScheme.error,
+                        colorIcono = cs.error,
                         titulo = "No se pudieron cargar las plantas",
                         detalle = error.orEmpty(),
                         textoAccion = "Reintentar",
@@ -178,14 +178,18 @@ fun PlantaPantalla() {
     }
 }
 
-// Entrada compacta a la imagen: miniatura y texto, ocupa poco espacio
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VistaGeneralPlanta(onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
+
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = formas.large,
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -198,7 +202,7 @@ private fun VistaGeneralPlanta(onClick: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(64.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(formas.medium)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -206,29 +210,29 @@ private fun VistaGeneralPlanta(onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Vista general de la planta",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = tp.titleSmall,
+                    color = cs.onSurface
                 )
                 Text(
                     text = "Toca para ver la imagen en pantalla completa",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = tp.bodySmall,
+                    color = cs.onSurfaceVariant
                 )
             }
 
             Icon(
                 imageVector = Icons.Default.Fullscreen,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = cs.primary
             )
         }
     }
 }
 
-// Pantalla completa con zoom de pellizco, arrastre y doble toque para ampliar o restablecer
+// Zoom de pellizco, arrastre y doble toque para ampliar o restablecer
 @Composable
 private fun VisorImagen(onCerrar: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
     var escala by remember { mutableFloatStateOf(1f) }
     var desplazamiento by remember { mutableStateOf(Offset.Zero) }
 
@@ -241,7 +245,7 @@ private fun VisorImagen(onCerrar: () -> Unit) {
         onDismissRequest = onCerrar,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Surface(modifier = Modifier.fillMaxSize(), color = cs.background) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
                     painter = painterResource(id = R.drawable.planta_procesadora),
@@ -281,7 +285,7 @@ private fun VisorImagen(onCerrar: () -> Unit) {
                 Text(
                     text = "Pellizca para ampliar o toca dos veces",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = cs.onSurfaceVariant,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
@@ -294,12 +298,16 @@ private fun VisorImagen(onCerrar: () -> Unit) {
 
 @Composable
 fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val estado = planta.status ?: "Sin estado"
-    val estadoColor = if (planta.esOperativa()) ColorOperativa else ColorMantenimiento
+    val estadoColor = if (planta.esOperativa()) ExitoVerde else AdvertenciaNaranja
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        shape = formas.large,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -307,16 +315,13 @@ fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            RoundedCornerShape(14.dp)
-                        ),
+                        .background(cs.primary.copy(alpha = 0.12f), formas.medium),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Factory,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = cs.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -326,9 +331,8 @@ fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = planta.name ?: "Sin nombre",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = tp.titleMedium,
+                        color = cs.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -337,14 +341,14 @@ fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = cs.onSurfaceVariant,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = planta.location ?: "Ubicación no especificada",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -367,7 +371,7 @@ fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
                 DatoPlanta(
                     etiqueta = "Alquiler por TM",
                     valor = String.format(Locale.US, "$ %.2f", planta.rentalCostPerTM ?: 0.0),
-                    colorValor = MaterialTheme.colorScheme.primary,
+                    colorValor = cs.primary,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -377,7 +381,7 @@ fun PlantaItemCard(planta: ResponsePlant, modifier: Modifier = Modifier) {
 
 @Composable
 private fun EstadoBadge(texto: String, color: Color) {
-    Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.2f)) {
+    Surface(shape = CircleShape, color = color.copy(alpha = 0.2f)) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -391,7 +395,6 @@ private fun EstadoBadge(texto: String, color: Color) {
             Text(
                 text = texto,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
                 color = color
             )
         }
@@ -405,21 +408,19 @@ private fun DatoPlanta(
     modifier: Modifier = Modifier,
     colorValor: Color = MaterialTheme.colorScheme.onSurface
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        color = cs.surfaceContainerHigh,
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(
-                text = etiqueta,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
+            Text(text = etiqueta, style = tp.labelSmall, color = cs.onSurfaceVariant)
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = valor,
-                style = MaterialTheme.typography.bodyLarge,
+                style = tp.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = colorValor
             )
@@ -427,9 +428,10 @@ private fun DatoPlanta(
     }
 }
 
-// Tarjeta de carga con pulso suave mientras llegan los datos
 @Composable
 private fun PlantaSkeleton() {
+    val cs = MaterialTheme.colorScheme
+    val formas = MaterialTheme.shapes
     val transicion = rememberInfiniteTransition(label = "carga")
     val alfa by transicion.animateFloat(
         initialValue = 0.08f,
@@ -437,43 +439,43 @@ private fun PlantaSkeleton() {
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "alfaCarga"
     )
-    val bloque = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alfa)
+    val bloque = cs.onSurfaceVariant.copy(alpha = alfa)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        shape = formas.large,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(44.dp).background(bloque, RoundedCornerShape(14.dp)))
+                Box(modifier = Modifier.size(44.dp).background(bloque, formas.medium))
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.6f)
                             .height(14.dp)
-                            .background(bloque, RoundedCornerShape(6.dp))
+                            .background(bloque, formas.extraSmall)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.4f)
                             .height(10.dp)
-                            .background(bloque, RoundedCornerShape(6.dp))
+                            .background(bloque, formas.extraSmall)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(modifier = Modifier.weight(1f).height(52.dp).background(bloque, RoundedCornerShape(14.dp)))
-                Box(modifier = Modifier.weight(1f).height(52.dp).background(bloque, RoundedCornerShape(14.dp)))
+                Box(modifier = Modifier.weight(1f).height(52.dp).background(bloque, formas.medium))
+                Box(modifier = Modifier.weight(1f).height(52.dp).background(bloque, formas.medium))
             }
         }
     }
 }
 
-// Mensaje centrado para errores y listas vacías
 @Composable
 private fun EstadoMensaje(
     icono: ImageVector,
@@ -484,6 +486,8 @@ private fun EstadoMensaje(
     textoAccion: String? = null,
     onAccion: () -> Unit = {}
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -506,16 +510,15 @@ private fun EstadoMensaje(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = titulo,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = tp.titleMedium,
+            color = cs.onSurface,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = detalle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = tp.bodyMedium,
+            color = cs.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         if (textoAccion != null) {
@@ -527,7 +530,7 @@ private fun EstadoMensaje(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(textoAccion)
+                Text(textoAccion, style = tp.labelLarge)
             }
         }
     }
@@ -535,9 +538,10 @@ private fun EstadoMensaje(
 
 @Composable
 private fun BannerError(mensaje: String, onReintentar: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MaterialTheme.shapes.medium,
+        color = cs.errorContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -548,17 +552,17 @@ private fun BannerError(mensaje: String, onReintentar: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
+                tint = cs.onErrorContainer,
                 modifier = Modifier.size(18.dp)
             )
             Text(
                 text = mensaje,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = cs.onErrorContainer,
                 modifier = Modifier.weight(1f)
             )
             TextButton(onClick = onReintentar) {
-                Text("Reintentar", color = MaterialTheme.colorScheme.onErrorContainer)
+                Text("Reintentar", style = MaterialTheme.typography.labelLarge, color = cs.onErrorContainer)
             }
         }
     }

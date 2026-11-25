@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -24,12 +23,8 @@ import com.yachaq.minero.logica.BloqueFilas
 import com.yachaq.minero.logica.BloqueTabla
 import com.yachaq.minero.logica.ConstructorLiquidacion
 import com.yachaq.minero.logica.FilaLiq
-import com.yachaq.minero.ui.theme.*
 
-/**
- * Detalle completo de una liquidación. Muestra exactamente los mismos
- * datos que se exportan al PDF (ambos salen de ConstructorLiquidacion).
- */
+
 @Composable
 fun DetalleLiquidacionDialog(
     registro: ResponseHistorial,
@@ -37,12 +32,15 @@ fun DetalleLiquidacionDialog(
     onExportar: () -> Unit
 ) {
     val vista = remember(registro) { ConstructorLiquidacion.construir(registro) }
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     Dialog(
         onDismissRequest = onCerrar,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = FondoNegroAbsoluto) {
+        Surface(modifier = Modifier.fillMaxSize(), color = cs.background) {
             Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
 
                 // Encabezado
@@ -53,19 +51,19 @@ fun DetalleLiquidacionDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "DETALLE DE LIQUIDACIÓN",
-                            color = AmarilloMineroBrillante,
-                            fontSize = 16.sp,
+                            style = tp.titleMedium,
+                            color = cs.primary,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp
                         )
                         Text(
                             "N° ${vista.numero}  ·  ${vista.fecha}",
-                            color = TextoGrisSecundario,
-                            fontSize = 11.sp
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onCerrar) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TextoGrisSecundario)
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = cs.onSurfaceVariant)
                     }
                 }
 
@@ -76,16 +74,35 @@ fun DetalleLiquidacionDialog(
                     contentPadding = PaddingValues(bottom = 12.dp)
                 ) {
                     item {
-                        Surface(shape = RoundedCornerShape(16.dp), color = GrisCampos, modifier = Modifier.fillMaxWidth()) {
+                        Surface(
+                            shape = formas.large,
+                            color = cs.surfaceContainerHigh,
+                            border = BorderStroke(1.dp, cs.outlineVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("TOTAL A PAGAR", fontSize = 10.sp, color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
-                                Text(vista.total, fontSize = 28.sp, color = AmarilloMineroBrillante, fontWeight = FontWeight.Black)
-                                HorizontalDivider(color = ColorGrisBorde)
+                                Text(
+                                    "TOTAL A PAGAR",
+                                    style = tp.labelSmall,
+                                    color = cs.onSurfaceVariant
+                                )
+                                Text(
+                                    vista.total,
+                                    style = tp.headlineLarge,
+                                    color = cs.primary,
+                                    fontWeight = FontWeight.Black
+                                )
+                                HorizontalDivider(color = cs.outlineVariant)
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     vista.resumen.forEach { r ->
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(r.etiqueta, fontSize = 10.sp, color = TextoGrisSecundario)
-                                            Text(r.valor, fontSize = 12.sp, color = TextoBlancoSuave, fontWeight = FontWeight.Bold)
+                                            Text(r.etiqueta, style = tp.labelSmall, color = cs.onSurfaceVariant)
+                                            Text(
+                                                r.valor,
+                                                style = tp.bodySmall,
+                                                color = cs.onSurface,
+                                                fontWeight = FontWeight.Bold
+                                            )
                                         }
                                     }
                                 }
@@ -95,21 +112,20 @@ fun DetalleLiquidacionDialog(
 
                     items(vista.bloques) { bloque ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, ColorGrisBorde),
+                            colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+                            shape = formas.large,
+                            border = BorderStroke(1.dp, cs.outlineVariant),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     bloque.titulo.uppercase(),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = AmarilloMineroBrillante,
-                                    letterSpacing = 0.8.sp
+                                    style = tp.labelMedium,
+                                    color = cs.primary,
+                                    fontWeight = FontWeight.Black
                                 )
                                 Spacer(Modifier.height(8.dp))
-                                HorizontalDivider(color = ColorGrisBorde)
+                                HorizontalDivider(color = cs.outlineVariant)
 
                                 when (bloque) {
                                     is BloqueFilas -> bloque.filas.forEach { FilaDetalle(it) }
@@ -127,25 +143,21 @@ fun DetalleLiquidacionDialog(
                 ) {
                     OutlinedButton(
                         onClick = onCerrar,
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, ColorGrisBorde),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextoBlancoSuave),
+                        shape = formas.medium,
+                        border = BorderStroke(1.dp, cs.outlineVariant),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.onSurface),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cerrar", fontWeight = FontWeight.Bold)
+                        Text("Cerrar", style = tp.labelLarge)
                     }
                     Button(
                         onClick = onExportar,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AmarilloMineroBrillante,
-                            contentColor = FondoNegroAbsoluto
-                        ),
+                        shape = formas.medium,
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Exportar PDF", fontWeight = FontWeight.Bold)
+                        Text("Exportar PDF", style = tp.labelLarge)
                     }
                 }
             }
@@ -155,6 +167,8 @@ fun DetalleLiquidacionDialog(
 
 @Composable
 private fun FilaDetalle(f: FilaLiq) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -162,15 +176,15 @@ private fun FilaDetalle(f: FilaLiq) {
     ) {
         Text(
             text = f.etiqueta,
-            fontSize = 12.sp,
-            color = if (f.resaltar) TextoBlancoSuave else TextoGrisSecundario,
+            style = tp.bodySmall,
+            color = if (f.resaltar) cs.onSurface else cs.onSurfaceVariant,
             fontWeight = if (f.resaltar) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.weight(1f).padding(end = 12.dp)
         )
         Text(
             text = f.valor,
-            fontSize = 12.sp,
-            color = if (f.resaltar) AmarilloMineroBrillante else TextoBlancoSuave,
+            style = tp.bodySmall,
+            color = if (f.resaltar) cs.primary else cs.onSurface,
             fontWeight = if (f.resaltar) FontWeight.Black else FontWeight.Medium,
             textAlign = TextAlign.End
         )
@@ -179,30 +193,31 @@ private fun FilaDetalle(f: FilaLiq) {
 
 @Composable
 private fun TablaDetalle(b: BloqueTabla) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     val pesos = b.columnas.indices.map { if (it == 0) 0.9f else 1.1f }
 
     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp)) {
         b.columnas.forEachIndexed { i, col ->
             Text(
                 text = col,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoGrisSecundario,
+                style = tp.labelSmall,
+                color = cs.onSurfaceVariant,
                 textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
                 modifier = Modifier.weight(pesos[i])
             )
         }
     }
-    HorizontalDivider(color = ColorGrisBorde)
+    HorizontalDivider(color = cs.outlineVariant)
 
     b.filas.forEach { fila ->
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             fila.forEachIndexed { i, celda ->
                 Text(
                     text = celda,
-                    fontSize = 11.sp,
+                    style = tp.bodySmall,
                     fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Medium,
-                    color = TextoBlancoSuave,
+                    color = cs.onSurface,
                     textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
                     modifier = Modifier.weight(pesos[i])
                 )

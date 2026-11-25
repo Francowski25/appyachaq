@@ -1,7 +1,6 @@
 package com.yachaq.minero.ui.modulos
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,7 +13,6 @@ import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.RequestPlant
 import com.yachaq.minero.data.remote.model.ResponsePlant
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -23,6 +21,9 @@ fun DialogoNuevaPlanta(
     onCreada: (ResponsePlant) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     var nombre by remember { mutableStateOf("") }
     var ubicacion by remember { mutableStateOf("") }
@@ -75,14 +76,14 @@ fun DialogoNuevaPlanta(
 
     AlertDialog(
         onDismissRequest = { if (!guardando) onDismiss() },
-        shape = RoundedCornerShape(20.dp),
-        containerColor = FondoNegroSecundario,
+        shape = formas.large,
+        containerColor = cs.surfaceContainer,
         title = {
             Text(
                 text = "REGISTRAR NUEVA PLANTA",
+                style = tp.titleLarge,
                 fontWeight = FontWeight.Black,
-                fontSize = 18.sp,
-                color = AmarilloMineroBrillante,
+                color = cs.primary,
                 letterSpacing = 0.8.sp
             )
         },
@@ -103,9 +104,8 @@ fun DialogoNuevaPlanta(
 
                 Text(
                     text = "Estado Inicial:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AmarilloMineroBrillante
+                    style = tp.labelMedium,
+                    color = cs.primary
                 )
 
                 Row(
@@ -116,8 +116,8 @@ fun DialogoNuevaPlanta(
                         val seleccionado = estado == opcion
                         Surface(
                             onClick = { if (!guardando) estado = opcion },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (seleccionado) AmarilloMineroBrillante else GrisCampos,
+                            shape = formas.medium,
+                            color = if (seleccionado) cs.primary else cs.surfaceContainerHigh,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
@@ -125,9 +125,8 @@ fun DialogoNuevaPlanta(
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = opcion,
-                                    color = if (seleccionado) FondoNegroAbsoluto else TextoBlancoSuave,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    style = tp.labelMedium,
+                                    color = if (seleccionado) cs.onPrimary else cs.onSurface
                                 )
                             }
                         }
@@ -135,7 +134,7 @@ fun DialogoNuevaPlanta(
                 }
 
                 error?.let {
-                    Text(it, color = ErrorRojo, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(it, style = tp.bodySmall, color = cs.error, fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -143,26 +142,22 @@ fun DialogoNuevaPlanta(
             Button(
                 onClick = { guardar() },
                 enabled = !guardando,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AmarilloMineroBrillante,
-                    contentColor = FondoNegroAbsoluto
-                ),
-                shape = RoundedCornerShape(12.dp)
+                shape = formas.medium
             ) {
                 if (guardando) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = FondoNegroAbsoluto,
+                        color = cs.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Guardar Planta", fontWeight = FontWeight.Black)
+                    Text("Guardar Planta", style = tp.labelLarge, fontWeight = FontWeight.Black)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !guardando) {
-                Text("Cancelar", color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
+                Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
             }
         }
     )
@@ -176,6 +171,7 @@ private fun CampoPlanta(
     enabled: Boolean = true,
     onCambio: (String) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     OutlinedTextField(
         value = valor,
         onValueChange = onCambio,
@@ -185,12 +181,16 @@ private fun CampoPlanta(
         keyboardOptions = if (decimal) KeyboardOptions(keyboardType = KeyboardType.Decimal)
         else KeyboardOptions.Default,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos, unfocusedContainerColor = GrisCampos,
-            focusedBorderColor = AmarilloMineroBrillante, unfocusedBorderColor = ColorGrisBorde,
-            focusedLabelColor = AmarilloMineroBrillante, unfocusedLabelColor = TextoGrisSecundario,
-            focusedTextColor = TextoBlancoSuave, unfocusedTextColor = TextoBlancoSuave
+            focusedContainerColor = cs.surfaceContainerHigh,
+            unfocusedContainerColor = cs.surfaceContainerHigh,
+            focusedBorderColor = cs.primary,
+            unfocusedBorderColor = cs.outlineVariant,
+            focusedLabelColor = cs.primary,
+            unfocusedLabelColor = cs.onSurfaceVariant,
+            focusedTextColor = cs.onSurface,
+            unfocusedTextColor = cs.onSurface
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth()
     )
 }

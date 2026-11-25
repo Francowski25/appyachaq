@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Factory
@@ -15,14 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.RequestUserPlant
 import com.yachaq.minero.data.remote.model.RequestUserTerms
 import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.data.remote.model.ResponseUserPlant
 import com.yachaq.minero.data.remote.model.ResponseUserTerms
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -34,6 +31,9 @@ private enum class FiltroPlantas(val etiqueta: String) {
 @Composable
 fun MisTerminosPantalla(idUser: String) {
     val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     var plantas by remember { mutableStateOf<List<ResponsePlant>>(emptyList()) }
     var plantasPersonales by remember { mutableStateOf<List<ResponseUserPlant>>(emptyList()) }
@@ -57,7 +57,7 @@ fun MisTerminosPantalla(idUser: String) {
     var guardandoPlantaPersonal by remember { mutableStateOf(false) }
     var eliminandoPlantaPersonal by remember { mutableStateOf(false) }
 
-    // Mantiene la carga de favoritas independiente de la disponibilidad de plantas personales.
+    // La carga de favoritas es independiente de la de plantas personales
     LaunchedEffect(recargar) {
         if (plantas.isEmpty() && plantasPersonales.isEmpty()) cargando = true
         errorLista = null
@@ -100,7 +100,7 @@ fun MisTerminosPantalla(idUser: String) {
     }
     val idsFavoritas = remember(favoritas) { favoritas.mapNotNull { it.idPlant }.toSet() }
 
-    // Lista única: favoritas del sistema + plantas personales
+    // Favoritas del sistema + plantas personales
     val todas = remember(favoritas, terminoPorPlanta, plantasPersonales) {
         val delSistema = favoritas.map { p ->
             val t = terminoPorPlanta[p.idPlant]
@@ -147,7 +147,7 @@ fun MisTerminosPantalla(idUser: String) {
                 it.ubicacion.contains(textoBusqueda, ignoreCase = true))
     }
 
-    // Marcar o quitar favorita (solo envía idUser, idPlant y favorita; no toca los términos)
+    // Solo envía idUser, idPlant y favorita; no toca los términos
     fun cambiarFavorita(planta: ResponsePlant, marcar: Boolean) {
         val idPlant = planta.idPlant ?: return
         scope.launch {
@@ -163,7 +163,7 @@ fun MisTerminosPantalla(idUser: String) {
         }
     }
 
-    // Restablecer los términos de una planta a los valores por defecto (la favorita se conserva)
+    // La favorita se conserva
     fun restablecerTerminos(planta: ResponsePlant) {
         val idPlant = planta.idPlant ?: return
         scope.launch {
@@ -251,11 +251,16 @@ fun MisTerminosPantalla(idUser: String) {
     ) {
         item {
             Column {
-                Text("Mis plantas", color = AmarilloMineroBrillante, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                Text(
+                    "Mis plantas",
+                    style = tp.headlineMedium,
+                    color = cs.primary,
+                    fontWeight = FontWeight.Black
+                )
                 Text(
                     "Tus favoritas, tus plantas personales y las condiciones comerciales de cada una.",
-                    color = TextoGrisSecundario,
-                    fontSize = 13.sp
+                    style = tp.bodyMedium,
+                    color = cs.onSurfaceVariant
                 )
             }
         }
@@ -278,27 +283,22 @@ fun MisTerminosPantalla(idUser: String) {
                         errorAccion = null
                         mostrarFormularioPersonal = true
                     },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    ),
+                    shape = formas.medium,
                     modifier = Modifier.weight(1f).height(46.dp)
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Nueva planta", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Nueva planta", style = tp.labelLarge)
                 }
                 OutlinedButton(
                     onClick = { mostrarDialogo = true },
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
+                    shape = formas.medium,
+                    border = BorderStroke(1.dp, cs.primary),
                     modifier = Modifier.weight(1f).height(46.dp)
                 ) {
                     Icon(Icons.Default.Factory, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Del sistema", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Del sistema", style = tp.labelLarge)
                 }
             }
         }
@@ -308,7 +308,7 @@ fun MisTerminosPantalla(idUser: String) {
         when {
             cargando -> item {
                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = AmarilloMineroBrillante)
+                    CircularProgressIndicator(color = cs.primary)
                 }
             }
 
@@ -329,19 +329,19 @@ fun MisTerminosPantalla(idUser: String) {
                             value = textoBusqueda,
                             onValueChange = { textoBusqueda = it },
                             label = { Text("Buscar por nombre o ubicación") },
-                            leadingIcon = { Icon(Icons.Default.Search, null, tint = AmarilloMineroBrillante) },
+                            leadingIcon = { Icon(Icons.Default.Search, null, tint = cs.primary) },
                             singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
+                            shape = formas.large,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = GrisCampos,
-                                unfocusedContainerColor = GrisCampos,
-                                focusedBorderColor = AmarilloMineroBrillante,
-                                unfocusedBorderColor = ColorGrisBorde,
-                                focusedLabelColor = AmarilloMineroBrillante,
-                                unfocusedLabelColor = TextoGrisSecundario,
-                                focusedTextColor = TextoBlancoSuave,
-                                unfocusedTextColor = TextoBlancoSuave,
-                                cursorColor = AmarilloMineroBrillante
+                                focusedContainerColor = cs.surfaceContainerHigh,
+                                unfocusedContainerColor = cs.surfaceContainerHigh,
+                                focusedBorderColor = cs.primary,
+                                unfocusedBorderColor = cs.outlineVariant,
+                                focusedLabelColor = cs.primary,
+                                unfocusedLabelColor = cs.onSurfaceVariant,
+                                focusedTextColor = cs.onSurface,
+                                unfocusedTextColor = cs.onSurface,
+                                cursorColor = cs.primary
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -352,18 +352,18 @@ fun MisTerminosPantalla(idUser: String) {
                                 FilterChip(
                                     selected = filtro == f,
                                     onClick = { filtro = f },
-                                    label = { Text(f.etiqueta, fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    label = { Text(f.etiqueta, style = tp.labelMedium) },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = GrisCampos,
-                                        labelColor = TextoGrisSecundario,
-                                        selectedContainerColor = AmarilloMineroBrillante,
-                                        selectedLabelColor = FondoNegroAbsoluto
+                                        containerColor = cs.surfaceContainerHigh,
+                                        labelColor = cs.onSurfaceVariant,
+                                        selectedContainerColor = cs.primary,
+                                        selectedLabelColor = cs.onPrimary
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = filtro == f,
-                                        borderColor = ColorGrisBorde,
-                                        selectedBorderColor = AmarilloMineroBrillante
+                                        borderColor = cs.outlineVariant,
+                                        selectedBorderColor = cs.primary
                                     )
                                 )
                             }
@@ -374,8 +374,8 @@ fun MisTerminosPantalla(idUser: String) {
                         item {
                             Text(
                                 "No se encontraron plantas con ese filtro o búsqueda.",
-                                color = TextoGrisSecundario,
-                                fontSize = 13.sp
+                                style = tp.bodyMedium,
+                                color = cs.onSurfaceVariant
                             )
                         }
                     } else {
@@ -405,7 +405,6 @@ fun MisTerminosPantalla(idUser: String) {
         }
     }
 
-    // Hoja con todas las plantas del sistema (agregar a favoritas)
     if (mostrarDialogo) {
         DialogoListaPlantas(
             plantas = plantas,
@@ -481,7 +480,7 @@ fun MisTerminosPantalla(idUser: String) {
         )
     }
 
-    // Modal de términos: planta del sistema; al cerrar se recarga
+    // Al cerrar los modales de términos se recarga la lista
     plantaSeleccionadaTerminos?.let { planta ->
         val idPlant = planta.idPlant
         if (idPlant != null) {
@@ -500,7 +499,6 @@ fun MisTerminosPantalla(idUser: String) {
         }
     }
 
-    // Modal de términos: planta personal; al cerrar se recarga
     plantaPersonalTerminos?.let { planta ->
         val id = planta.idUserPlant
         if (id != null) {
@@ -520,15 +518,22 @@ fun MisTerminosPantalla(idUser: String) {
 
 @Composable
 private fun ResumenTile(etiqueta: String, valor: Int, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = FondoNegroSecundario,
-        border = BorderStroke(1.dp, ColorGrisBorde),
+        shape = MaterialTheme.shapes.medium,
+        color = cs.surfaceContainer,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(valor.toString(), color = AmarilloMineroBrillante, fontSize = 22.sp, fontWeight = FontWeight.Black)
-            Text(etiqueta, color = TextoGrisSecundario, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+            Text(
+                valor.toString(),
+                style = tp.headlineSmall,
+                color = cs.primary,
+                fontWeight = FontWeight.Black
+            )
+            Text(etiqueta, style = tp.labelSmall, color = cs.onSurfaceVariant)
         }
     }
 }
@@ -538,12 +543,12 @@ private fun ErrorConReintento(mensaje: String, onReintentar: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         MensajeError(mensaje)
         TextButton(onClick = onReintentar) {
-            Text("REINTENTAR", color = AmarilloMineroBrillante, fontWeight = FontWeight.Bold)
+            Text("REINTENTAR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
 
-// Un solo diálogo de confirmación para eliminar, quitar y restablecer
+// Un solo diálogo para eliminar, quitar y restablecer
 @Composable
 private fun DialogoConfirmacion(
     titulo: String,
@@ -554,29 +559,31 @@ private fun DialogoConfirmacion(
     cargando: Boolean = false,
     error: String? = null
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = FondoNegroSecundario,
-        shape = RoundedCornerShape(20.dp),
-        title = { Text(titulo, color = AmarilloMineroBrillante, fontWeight = FontWeight.Bold) },
+        containerColor = cs.surfaceContainer,
+        shape = MaterialTheme.shapes.large,
+        title = { Text(titulo, style = tp.titleLarge, color = cs.primary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(mensaje, color = TextoBlancoSuave, fontSize = 14.sp)
+                Text(mensaje, style = tp.bodyMedium, color = cs.onSurface)
                 error?.let { MensajeError(it) }
             }
         },
         confirmButton = {
             TextButton(onClick = onConfirmar, enabled = !cargando) {
                 if (cargando) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = ErrorRojo, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = cs.error, strokeWidth = 2.dp)
                 } else {
-                    Text(textoConfirmar, color = ErrorRojo, fontWeight = FontWeight.Bold)
+                    Text(textoConfirmar, style = tp.labelLarge, color = cs.error)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !cargando) {
-                Text("CANCELAR", color = TextoGrisSecundario)
+                Text("CANCELAR", style = tp.labelLarge, color = cs.onSurfaceVariant)
             }
         }
     )

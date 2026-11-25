@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -26,7 +25,6 @@ import com.yachaq.minero.data.remote.model.ResponseCalculo
 import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.data.remote.model.ResponseUserPlant
 import com.yachaq.minero.data.remote.model.SesionUsuario
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
@@ -50,6 +48,9 @@ private suspend fun obtenerIdsFavoritos(idUser: String): Set<String> {
 fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val usuarioActual = SesionUsuario.usuarioActual
     // Minero: cualquier usuario con sesión que no sea administrador
     val esMinero = usuarioActual != null && !SesionUsuario.esAdmin()
@@ -245,34 +246,37 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Calculadora",
-                    color = AmarilloMineroBrillante,
-                    fontSize = 24.sp,
+                    style = tp.headlineMedium,
+                    color = cs.primary,
                     fontWeight = FontWeight.Black
                 )
-                Text("Liquidación de concentrado", color = TextoGrisSecundario, fontSize = 13.sp)
+                Text(
+                    "Liquidación de concentrado",
+                    style = tp.bodyMedium,
+                    color = cs.onSurfaceVariant
+                )
             }
             if (usuarioActual?.role == "minero" && !SesionUsuario.esPremium()) {
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = GrisCampos,
-                    border = BorderStroke(1.dp, ColorGrisBorde)
+                    shape = formas.large,
+                    color = cs.surfaceContainerHigh,
+                    border = BorderStroke(1.dp, cs.outlineVariant)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = AmarilloMineroBrillante,
+                            tint = cs.primary,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = "${SesionUsuario.consultasRestantes()} gratis",
-                            color = TextoGrisSecundario,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            style = tp.labelMedium,
+                            color = cs.onSurfaceVariant
                         )
                     }
                 }
@@ -289,43 +293,46 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     CircularProgressIndicator(
-                        color = AmarilloMineroBrillante,
+                        color = cs.primary,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(22.dp)
                     )
-                    Text("Cargando plantas…", color = TextoGrisSecundario, fontSize = 13.sp)
+                    Text(
+                        "Cargando plantas…",
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
+                    )
                 }
                 errorPlantas != null && plantasCalculo.isEmpty() -> {
                     MensajeError(errorPlantas.orEmpty())
                     OutlinedButton(
                         onClick = { recargarPlantas++ },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AmarilloMineroBrillante),
-                        border = BorderStroke(1.dp, AmarilloMineroBrillante),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text("Reintentar", fontWeight = FontWeight.Bold) }
+                        border = BorderStroke(1.dp, cs.primary),
+                        shape = formas.medium
+                    ) { Text("Reintentar", style = tp.labelLarge) }
                 }
                 // El botón solo existe para el minero; el admin solo ve el texto
                 plantasCalculo.isEmpty() -> if (esMinero) {
                     Text(
                         "Aún no tienes plantas. Añade una para poder calcular.",
-                        color = TextoGrisSecundario,
-                        fontSize = 13.sp
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
                     )
                     Button(
                         onClick = onIrATerminos,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AmarilloMineroBrillante,
-                            contentColor = FondoNegroAbsoluto
-                        ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = formas.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Ir a Mi Planta y Términos", fontWeight = FontWeight.Bold)
+                        Text("Ir a Mi Planta y Términos", style = tp.labelLarge)
                     }
                 } else {
-                    Text("No hay plantas registradas.", color = TextoGrisSecundario, fontSize = 13.sp)
+                    Text(
+                        "No hay plantas registradas.",
+                        style = tp.bodyMedium,
+                        color = cs.onSurfaceVariant
+                    )
                 }
                 else -> SelectorPlanta(
                     plantas = plantasCalculo,
@@ -375,8 +382,8 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
             }
             Text(
                 "Las leyes son opcionales, pero debes ingresar al menos una.",
-                color = TextoGrisSecundario,
-                fontSize = 11.sp
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant
             )
         }
 
@@ -385,11 +392,7 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
         Button(
             onClick = { calcular() },
             enabled = !calculando,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AmarilloMineroBrillante,
-                contentColor = FondoNegroAbsoluto
-            ),
-            shape = RoundedCornerShape(16.dp),
+            shape = formas.medium,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
@@ -397,14 +400,14 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
             if (calculando) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = FondoNegroAbsoluto,
+                    color = cs.onPrimary,
                     strokeWidth = 2.dp
                 )
             } else {
                 Text(
                     "CALCULAR LIQUIDACIÓN",
+                    style = tp.labelLarge,
                     fontWeight = FontWeight.Black,
-                    fontSize = 15.sp,
                     letterSpacing = 1.sp
                 )
             }
@@ -420,8 +423,8 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
 
         Text(
             "Los precios de los metales se administran centralmente y se actualizan periódicamente.",
-            color = TextoGrisSecundario,
-            fontSize = 11.sp,
+            style = tp.bodySmall,
+            color = cs.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
@@ -434,24 +437,22 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
                 Icon(
                     Icons.Default.Star,
                     contentDescription = null,
-                    tint = AmarilloMineroBrillante,
+                    tint = cs.primary,
                     modifier = Modifier.size(40.dp)
                 )
             },
             title = {
                 Text(
                     "Límite gratuito alcanzado",
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center,
-                    color = TextoBlancoSuave
+                    style = tp.titleLarge,
+                    textAlign = TextAlign.Center
                 )
             },
             text = {
                 Text(
                     "Has alcanzado el límite de 10 consultas gratuitas. Actualiza a Plan Premium para continuar realizando cálculos ilimitados.",
-                    textAlign = TextAlign.Center,
-                    fontSize = 14.sp,
-                    color = TextoGrisSecundario
+                    style = tp.bodyMedium,
+                    textAlign = TextAlign.Center
                 )
             },
             confirmButton = {
@@ -459,20 +460,18 @@ fun CalculadoraPantalla(onIrATerminos: () -> Unit = {}) {
                     onClick = {
                         SesionUsuario.alternarPlanPremiumSimulado()
                         mostrarDialogoPremium = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    )
-                ) { Text("ACTIVAR PREMIUM (SIMULACIÓN)", fontWeight = FontWeight.Bold) }
+                    }
+                ) { Text("ACTIVAR PREMIUM (SIMULACIÓN)", style = tp.labelLarge) }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoPremium = false }) {
-                    Text("CERRAR", color = TextoGrisSecundario)
+                    Text("CERRAR", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
             },
-            containerColor = FondoNegroSecundario,
-            shape = RoundedCornerShape(20.dp)
+            containerColor = cs.surfaceContainer,
+            titleContentColor = cs.onSurface,
+            textContentColor = cs.onSurfaceVariant,
+            shape = formas.large
         )
     }
 }

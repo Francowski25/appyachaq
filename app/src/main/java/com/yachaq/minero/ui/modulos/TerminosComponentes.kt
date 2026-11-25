@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -25,7 +24,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yachaq.minero.ui.auth.componentes.TarjetaAuth
-import com.yachaq.minero.ui.theme.*
 
 @Composable
 fun TarjetaPaso(
@@ -34,6 +32,8 @@ fun TarjetaPaso(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     TarjetaAuth(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
@@ -44,23 +44,22 @@ fun TarjetaPaso(
                     modifier = Modifier
                         .size(28.dp)
                         .background(
-                            Brush.linearGradient(listOf(AmarilloMineroBrillante, AmarilloMinero)),
+                            Brush.linearGradient(listOf(cs.primary, cs.secondary)),
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = numero.toString(),
-                        color = FondoNegroAbsoluto,
-                        fontSize = 13.sp,
+                        style = tp.labelLarge,
+                        color = cs.onPrimary,
                         fontWeight = FontWeight.Black
                     )
                 }
                 Text(
                     text = titulo,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = tp.titleSmall,
+                    color = cs.onSurface,
                     letterSpacing = 1.sp
                 )
             }
@@ -69,9 +68,7 @@ fun TarjetaPaso(
     }
 }
 
-// Campo decimal con el estilo de CampoAuth: fondo gris, borde solo al enfocar,
-// ícono opcional a la izquierda y unidad al final. Solo dígitos y un punto (acepta coma).
-// "icono" es opcional: si no lo pasas, los llamados actuales funcionan igual.
+// Solo dígitos y un punto (acepta coma). Fondo gris, borde solo al enfocar; el ícono es opcional.
 @Composable
 fun CampoNumero(
     valor: String,
@@ -84,6 +81,7 @@ fun CampoNumero(
     ayuda: String? = null,
     icono: ImageVector? = null
 ) {
+    val cs = MaterialTheme.colorScheme
     val mensaje = error ?: ayuda
     OutlinedTextField(
         value = valor,
@@ -95,10 +93,10 @@ fun CampoNumero(
         },
         label = { Text(etiqueta) },
         leadingIcon = if (icono != null) {
-            { Icon(imageVector = icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            { Icon(imageVector = icono, contentDescription = null, tint = cs.primary) }
         } else null,
         suffix = {
-            Text(unidad, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text(unidad, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
         },
         isError = error != null,
         supportingText = if (mensaje != null) {
@@ -110,19 +108,22 @@ fun CampoNumero(
             imeAction = if (ultimo) ImeAction.Done else ImeAction.Next
         ),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = GrisCampos,
-            unfocusedContainerColor = GrisCampos,
-            errorContainerColor = GrisCampos,
-            disabledContainerColor = GrisCampos,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.Transparent
+            focusedContainerColor = cs.surfaceContainerHigh,
+            unfocusedContainerColor = cs.surfaceContainerHigh,
+            errorContainerColor = cs.surfaceContainerHigh,
+            disabledContainerColor = cs.surfaceContainerHigh,
+            focusedBorderColor = cs.primary,
+            unfocusedBorderColor = Color.Transparent,
+            focusedLabelColor = cs.primary,
+            unfocusedLabelColor = cs.onSurfaceVariant,
+            focusedTextColor = cs.onSurface,
+            unfocusedTextColor = cs.onSurface
         ),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier
     )
 }
 
-// Mensaje de error con el mismo look de MensajeAuth, con entrada animada
 @Composable
 fun MensajeError(texto: String, modifier: Modifier = Modifier) {
     val estado = remember { MutableTransitionState(false).apply { targetState = true } }
@@ -133,7 +134,7 @@ fun MensajeError(texto: String, modifier: Modifier = Modifier) {
     ) {
         val color = MaterialTheme.colorScheme.error
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.small,
             color = color.copy(alpha = 0.12f),
             modifier = Modifier.fillMaxWidth()
         ) {

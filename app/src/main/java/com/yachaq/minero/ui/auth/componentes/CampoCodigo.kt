@@ -11,7 +11,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,12 +28,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.yachaq.minero.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-// Un solo campo de texto invisible + 6 cuadros: soporta pegar, autocompletar y borrar con el teclado
+// Un solo campo invisible + 6 cuadros: soporta pegar, autocompletar y borrar con el teclado
 @Composable
 fun CampoCodigo(
     codigo: String,
@@ -112,33 +109,33 @@ private fun CajaCodigo(
     esError: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val primario = MaterialTheme.colorScheme.primary
+    val cs = MaterialTheme.colorScheme
+    val forma = MaterialTheme.shapes.medium
     val colorBorde by animateColorAsState(
         targetValue = when {
-            esError -> MaterialTheme.colorScheme.error
-            activa -> primario
-            caracter.isNotEmpty() -> primario.copy(alpha = 0.6f)
-            else -> ColorGrisBorde
+            esError -> cs.error
+            activa -> cs.primary
+            caracter.isNotEmpty() -> cs.primary.copy(alpha = 0.6f)
+            else -> cs.outlineVariant
         },
         label = "bordeCaja"
     )
     val escala by animateFloatAsState(if (activa) 1.06f else 1f, label = "escalaCaja")
-    val forma = RoundedCornerShape(12.dp)
 
     Box(
         modifier = modifier
             .height(58.dp)
             .scale(escala)
-            .background(GrisCampos, forma)
+            .background(cs.surfaceContainerHigh, forma)
             .border(if (activa) 2.dp else 1.dp, colorBorde, forma),
         contentAlignment = Alignment.Center
     ) {
         if (caracter.isNotEmpty()) {
             Text(
                 text = caracter,
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = cs.onSurface
             )
         } else if (activa) {
             val transicion = rememberInfiniteTransition(label = "cursor")
@@ -152,7 +149,7 @@ private fun CajaCodigo(
                 modifier = Modifier
                     .width(2.dp)
                     .height(24.dp)
-                    .background(primario.copy(alpha = alfa))
+                    .background(cs.primary.copy(alpha = alfa))
             )
         }
     }

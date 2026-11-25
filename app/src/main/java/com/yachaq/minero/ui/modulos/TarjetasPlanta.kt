@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -26,10 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.model.ResponsePlant
 import com.yachaq.minero.data.remote.model.ResponseUserPlant
-import com.yachaq.minero.ui.theme.*
+import com.yachaq.minero.ui.theme.AdvertenciaNaranja
+import com.yachaq.minero.ui.theme.ExitoVerde
 import java.util.Locale
 
 // Modelo común para dibujar plantas del sistema y personales con la misma tarjeta
@@ -52,12 +51,11 @@ private fun dolar(v: Double?) = String.format(Locale.US, "$ %.2f", v ?: 0.0)
 
 @Composable
 private fun Etiqueta(texto: String, color: Color) {
-    Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.18f)) {
+    Surface(shape = MaterialTheme.shapes.small, color = color.copy(alpha = 0.18f)) {
         Text(
             texto,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall,
             color = color
         )
     }
@@ -66,41 +64,43 @@ private fun Etiqueta(texto: String, color: Color) {
 @Composable
 fun EtiquetaEstado(status: String?) {
     val estado = status ?: "Sin estado"
-    val color = if (estado.equals("Operativa", ignoreCase = true)) Color(0xFF4CAF50) else Color(0xFFFF9800)
+    val color = if (estado.equals("Operativa", ignoreCase = true)) ExitoVerde else AdvertenciaNaranja
     Etiqueta(estado, color)
 }
 
 @Composable
 private fun IconoFabrica(resaltado: Boolean) {
+    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .size(42.dp)
             .background(
-                if (resaltado) AmarilloMineroBrillante else GrisCampos,
-                RoundedCornerShape(12.dp)
+                if (resaltado) cs.primary else cs.surfaceContainerHigh,
+                MaterialTheme.shapes.medium
             ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             Icons.Default.Factory,
             contentDescription = null,
-            tint = if (resaltado) FondoNegroAbsoluto else AmarilloMineroBrillante,
+            tint = if (resaltado) cs.onPrimary else cs.primary,
             modifier = Modifier.size(22.dp)
         )
     }
 }
 
-// Casilla pequeña con etiqueta y valor
 @Composable
 private fun DatoPlanta(etiqueta: String, valor: String, destacado: Boolean = false, modifier: Modifier = Modifier) {
-    Surface(shape = RoundedCornerShape(12.dp), color = GrisCampos, modifier = modifier) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    Surface(shape = MaterialTheme.shapes.medium, color = cs.surfaceContainerHigh, modifier = modifier) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(etiqueta, fontSize = 10.sp, color = TextoGrisSecundario, fontWeight = FontWeight.Bold)
+            Text(etiqueta, style = tp.labelSmall, color = cs.onSurfaceVariant)
             Text(
                 valor,
-                fontSize = 14.sp,
+                style = tp.titleSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (destacado) AmarilloMineroBrillante else TextoBlancoSuave
+                color = if (destacado) cs.primary else cs.onSurface
             )
         }
     }
@@ -108,10 +108,12 @@ private fun DatoPlanta(etiqueta: String, valor: String, destacado: Boolean = fal
 
 @Composable
 fun TarjetaSinFavoritas(onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Card(
-        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, ColorGrisBorde),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -122,29 +124,24 @@ fun TarjetaSinFavoritas(onClick: () -> Unit) {
             IconoFabrica(resaltado = true)
             Text(
                 "Aún no tienes plantas",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoBlancoSuave,
+                style = tp.titleMedium,
+                color = cs.onSurface,
                 textAlign = TextAlign.Center
             )
             Text(
                 "Añade una planta personal o elige de la lista las plantas del sistema con las que trabajas.",
-                fontSize = 12.sp,
-                color = TextoGrisSecundario,
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Button(
                 onClick = onClick,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AmarilloMineroBrillante,
-                    contentColor = FondoNegroAbsoluto
-                ),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Ver lista de plantas", fontWeight = FontWeight.Bold)
+                Text("Ver lista de plantas", style = tp.labelLarge)
             }
         }
     }
@@ -159,14 +156,16 @@ fun TarjetaPlantaMinero(
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     var menu by remember { mutableStateOf(false) }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = FondoNegroSecundario),
-        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(
             1.dp,
-            if (planta.esPersonal) ColorGrisBorde else AmarilloMineroBrillante.copy(alpha = 0.4f)
+            if (planta.esPersonal) cs.outlineVariant else cs.primary.copy(alpha = 0.4f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -176,19 +175,18 @@ fun TarjetaPlantaMinero(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         planta.nombre,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoBlancoSuave,
+                        style = tp.titleMedium,
+                        color = cs.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, null, tint = TextoGrisSecundario, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Default.LocationOn, null, tint = cs.onSurfaceVariant, modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(2.dp))
                         Text(
                             planta.ubicacion,
-                            fontSize = 12.sp,
-                            color = TextoGrisSecundario,
+                            style = tp.bodySmall,
+                            color = cs.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -196,35 +194,35 @@ fun TarjetaPlantaMinero(
                 }
                 Box {
                     IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Más opciones", tint = TextoGrisSecundario)
+                        Icon(Icons.Default.MoreVert, contentDescription = "Más opciones", tint = cs.onSurfaceVariant)
                     }
                     DropdownMenu(
                         expanded = menu,
                         onDismissRequest = { menu = false },
-                        containerColor = FondoNegroSecundario
+                        containerColor = cs.surfaceContainerHigh
                     ) {
                         if (planta.esPersonal) {
                             DropdownMenuItem(
-                                text = { Text("Editar datos", color = TextoBlancoSuave) },
-                                leadingIcon = { Icon(Icons.Default.Edit, null, tint = AmarilloMineroBrillante) },
+                                text = { Text("Editar datos", style = tp.bodyMedium, color = cs.onSurface) },
+                                leadingIcon = { Icon(Icons.Default.Edit, null, tint = cs.primary) },
                                 onClick = { menu = false; onEditar() }
                             )
                             DropdownMenuItem(
-                                text = { Text("Eliminar", color = ErrorRojo) },
-                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = ErrorRojo) },
+                                text = { Text("Eliminar", style = tp.bodyMedium, color = cs.error) },
+                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
                                 onClick = { menu = false; onEliminar() }
                             )
                         } else {
                             if (planta.personalizado) {
                                 DropdownMenuItem(
-                                    text = { Text("Restablecer términos", color = TextoBlancoSuave) },
-                                    leadingIcon = { Icon(Icons.Default.Restore, null, tint = AmarilloMineroBrillante) },
+                                    text = { Text("Restablecer términos", style = tp.bodyMedium, color = cs.onSurface) },
+                                    leadingIcon = { Icon(Icons.Default.Restore, null, tint = cs.primary) },
                                     onClick = { menu = false; onRestablecer() }
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("Quitar de favoritas", color = ErrorRojo) },
-                                leadingIcon = { Icon(Icons.Default.Star, null, tint = ErrorRojo) },
+                                text = { Text("Quitar de favoritas", style = tp.bodyMedium, color = cs.error) },
+                                leadingIcon = { Icon(Icons.Default.Star, null, tint = cs.error) },
                                 onClick = { menu = false; onQuitarFavorita() }
                             )
                         }
@@ -236,9 +234,9 @@ fun TarjetaPlantaMinero(
                 EtiquetaEstado(planta.estado)
                 Etiqueta(
                     if (planta.esPersonal) "PERSONAL" else "FAVORITA",
-                    if (planta.esPersonal) TextoGrisSecundario else AmarilloMineroBrillante
+                    if (planta.esPersonal) cs.onSurfaceVariant else cs.primary
                 )
-                if (planta.personalizado) Etiqueta("PERSONALIZADO", AmarilloMineroBrillante)
+                if (planta.personalizado) Etiqueta("PERSONALIZADO", cs.primary)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -252,16 +250,12 @@ fun TarjetaPlantaMinero(
 
             Button(
                 onClick = onAjustar,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AmarilloMineroBrillante,
-                    contentColor = FondoNegroAbsoluto
-                ),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().height(46.dp)
             ) {
                 Icon(Icons.Default.Tune, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Ajustar términos", fontWeight = FontWeight.Bold)
+                Text("Ajustar términos", style = tp.labelLarge)
             }
         }
     }
@@ -276,13 +270,20 @@ fun DialogoListaPlantas(
     onAgregar: (ResponsePlant) -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = FondoNegroSecundario) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = cs.surfaceContainer) {
         Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("Plantas del sistema", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextoBlancoSuave)
+            Text(
+                "Plantas del sistema",
+                style = tp.titleLarge,
+                color = cs.onSurface,
+                fontWeight = FontWeight.ExtraBold
+            )
             Text(
                 "Agrega a favoritas las plantas con las que trabajas.",
-                fontSize = 12.sp,
-                color = TextoGrisSecundario
+                style = tp.bodySmall,
+                color = cs.onSurfaceVariant
             )
             error?.let {
                 Spacer(Modifier.height(8.dp))
@@ -291,7 +292,7 @@ fun DialogoListaPlantas(
             Spacer(Modifier.height(12.dp))
 
             if (plantas.isEmpty()) {
-                Text("No hay plantas registradas.", color = TextoGrisSecundario, fontSize = 13.sp)
+                Text("No hay plantas registradas.", style = tp.bodyMedium, color = cs.onSurfaceVariant)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(items = plantas, key = { it.idPlant ?: it.hashCode() }) { planta ->
@@ -313,10 +314,12 @@ fun TarjetaPlantaLista(
     yaFavorita: Boolean,
     onAgregar: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = GrisCampos,
-        border = BorderStroke(1.dp, if (yaFavorita) AmarilloMineroBrillante.copy(alpha = 0.5f) else ColorGrisBorde),
+        shape = MaterialTheme.shapes.large,
+        color = cs.surfaceContainerHigh,
+        border = BorderStroke(1.dp, if (yaFavorita) cs.primary.copy(alpha = 0.5f) else cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -328,16 +331,15 @@ fun TarjetaPlantaLista(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     planta.name ?: "Sin nombre",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoBlancoSuave,
+                    style = tp.titleSmall,
+                    color = cs.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     planta.location ?: "Ubicación no especificada",
-                    fontSize = 11.sp,
-                    color = TextoGrisSecundario,
+                    style = tp.bodySmall,
+                    color = cs.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -345,22 +347,17 @@ fun TarjetaPlantaLista(
                     EtiquetaEstado(planta.status)
                     Text(
                         "${dolar(planta.rentalCostPerTM)}/TM",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AmarilloMineroBrillante
+                        style = tp.labelSmall,
+                        color = cs.primary
                     )
                 }
             }
             if (yaFavorita) {
-                Icon(Icons.Default.Check, contentDescription = "Agregada", tint = AmarilloMineroBrillante)
+                Icon(Icons.Default.Check, contentDescription = "Agregada", tint = cs.primary)
             } else {
-                FilledIconButton(
-                    onClick = onAgregar,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = AmarilloMineroBrillante,
-                        contentColor = FondoNegroAbsoluto
-                    )
-                ) { Icon(Icons.Default.Add, contentDescription = "Agregar a favoritas") }
+                FilledIconButton(onClick = onAgregar) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar a favoritas")
+                }
             }
         }
     }

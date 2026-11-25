@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
@@ -21,26 +20,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yachaq.minero.data.remote.RetrofitClient
 import com.yachaq.minero.data.remote.model.RequestUserAdmin
 import com.yachaq.minero.data.remote.model.ResponseUser
 import com.yachaq.minero.data.remote.model.SesionUsuario
 import com.yachaq.minero.logica.ResultadoValidacion
 import com.yachaq.minero.logica.ValidadorUsuario
-import com.yachaq.minero.ui.theme.GrisCampos
+import com.yachaq.minero.ui.theme.AdvertenciaNaranja
+import com.yachaq.minero.ui.theme.ExitoVerde
 import kotlinx.coroutines.launch
-
-private val ColorActivo = Color(0xFF4CAF50)
-private val ColorInhabilitado = Color(0xFFE53935)
-private val ColorRolMinero = Color(0xFFFFB300)
 
 private enum class FiltroEstado(val etiqueta: String) {
     TODOS("Todos"),
@@ -58,11 +52,28 @@ private fun inicialesUsuario(nombre: String?): String {
 }
 
 @Composable
+private fun coloresCampoUsuario(): TextFieldColors {
+    val cs = MaterialTheme.colorScheme
+    return OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = cs.surfaceContainerHigh,
+        unfocusedContainerColor = cs.surfaceContainerHigh,
+        focusedBorderColor = cs.primary,
+        unfocusedBorderColor = cs.outlineVariant,
+        focusedLabelColor = cs.primary,
+        unfocusedLabelColor = cs.onSurfaceVariant,
+        focusedTextColor = cs.onSurface,
+        unfocusedTextColor = cs.onSurface
+    )
+}
+
+@Composable
 fun UsuarioPantalla() {
     val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val idUsuarioActual = SesionUsuario.usuarioActual?.idUser
 
-    // ---------- Datos desde el backend ----------
     var usuarios by remember { mutableStateOf<List<ResponseUser>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
     var errorLista by remember { mutableStateOf<String?>(null) }
@@ -85,7 +96,6 @@ fun UsuarioPantalla() {
         }
     }
 
-    // ---------- Estado de UI ----------
     var textoBusqueda by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf(FiltroEstado.TODOS) }
     var mostrarDialogoAgregar by remember { mutableStateOf(false) }
@@ -179,35 +189,33 @@ fun UsuarioPantalla() {
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ---------- Encabezado ----------
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    shape = formas.medium,
+                    color = cs.primary.copy(alpha = 0.15f),
                     modifier = Modifier.size(46.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.SupervisorAccount,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = cs.primary
                         )
                     }
                 }
                 Column {
                     Text(
                         text = "Gestión de Usuarios",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        style = tp.titleLarge,
+                        color = cs.primary
                     )
                     Text(
                         text = "Accesos y estados de cuenta del sistema",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = tp.bodySmall,
+                        color = cs.onSurfaceVariant
                     )
                 }
             }
@@ -222,23 +230,17 @@ fun UsuarioPantalla() {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = cs.primary
                     )
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = formas.large,
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = GrisCampos,
-                    unfocusedContainerColor = GrisCampos,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                )
+                colors = coloresCampoUsuario()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ---------- Filtros con contador ----------
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FiltroEstado.values().forEach { f ->
                     val cantidad = when (f) {
@@ -249,20 +251,18 @@ fun UsuarioPantalla() {
                     FilterChip(
                         selected = filtro == f,
                         onClick = { filtro = f },
-                        label = {
-                            Text(
-                                text = "${f.etiqueta} ($cantidad)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        label = { Text(text = "${f.etiqueta} ($cantidad)", style = tp.labelMedium) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = cs.primaryContainer,
+                            selectedLabelColor = cs.onPrimaryContainer
+                        )
                     )
                 }
             }
 
             errorAccion?.let {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(it, style = tp.bodySmall, color = cs.error, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -278,8 +278,10 @@ fun UsuarioPantalla() {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(errorLista.orEmpty(), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-                        TextButton(onClick = { recargar++ }) { Text("REINTENTAR") }
+                        Text(errorLista.orEmpty(), style = tp.bodyMedium, color = cs.error)
+                        TextButton(onClick = { recargar++ }) {
+                            Text("REINTENTAR", style = tp.labelLarge)
+                        }
                     }
                 }
 
@@ -295,20 +297,19 @@ fun UsuarioPantalla() {
                         Icon(
                             imageVector = Icons.Default.SearchOff,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = cs.onSurfaceVariant,
                             modifier = Modifier.size(48.dp)
                         )
                         Text(
                             text = "No se encontraron usuarios",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = tp.titleMedium,
+                            color = cs.onSurface
                         )
                         if (textoBusqueda.isNotBlank()) {
                             Text(
                                 text = "No hay resultados para \"$textoBusqueda\". Intente con otro término.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = tp.bodySmall,
+                                color = cs.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -344,9 +345,9 @@ fun UsuarioPantalla() {
         ExtendedFloatingActionButton(
             onClick = { mostrarDialogoAgregar = true },
             icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-            text = { Text("Nuevo usuario", fontWeight = FontWeight.Bold) },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            text = { Text("Nuevo usuario", style = tp.labelLarge) },
+            containerColor = cs.primary,
+            contentColor = cs.onPrimary,
             modifier = Modifier.align(Alignment.BottomEnd)
         )
     }
@@ -361,13 +362,13 @@ fun UsuarioPantalla() {
         )
     }
 
-    // ---------- Confirmación: habilitar / inhabilitar ----------
     usuarioCambioEstado?.let { u ->
         val activo = u.status ?: true
-        val color = if (activo) ColorInhabilitado else ColorActivo
+        val color = if (activo) cs.error else ExitoVerde
         AlertDialog(
             onDismissRequest = { usuarioCambioEstado = null },
-            shape = RoundedCornerShape(20.dp),
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
             icon = {
                 Icon(
                     imageVector = if (activo) Icons.Default.Block else Icons.Default.CheckCircle,
@@ -379,7 +380,7 @@ fun UsuarioPantalla() {
             title = {
                 Text(
                     text = if (activo) "Inhabilitar cuenta" else "Habilitar cuenta",
-                    fontWeight = FontWeight.Bold
+                    style = tp.titleLarge
                 )
             },
             text = {
@@ -389,7 +390,7 @@ fun UsuarioPantalla() {
                     } else {
                         "¿Desea habilitar a '${u.name ?: ""}'? Podrá volver a iniciar sesión en el sistema."
                     },
-                    fontSize = 14.sp
+                    style = tp.bodyMedium
                 )
             },
             confirmButton = {
@@ -398,38 +399,44 @@ fun UsuarioPantalla() {
                         usuarioCambioEstado = null
                         alternarEstado(u)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = color,
+                        contentColor = if (activo) cs.onError else cs.onTertiary
+                    ),
+                    shape = formas.medium
                 ) {
-                    Text(if (activo) "Sí, inhabilitar" else "Sí, habilitar", fontWeight = FontWeight.Bold)
+                    Text(if (activo) "Sí, inhabilitar" else "Sí, habilitar", style = tp.labelLarge)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { usuarioCambioEstado = null }) { Text("Cancelar") }
+                TextButton(onClick = { usuarioCambioEstado = null }) {
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
+                }
             }
         )
     }
 
-    // ---------- Confirmación: eliminar ----------
     usuarioAEliminar?.let { u ->
         AlertDialog(
             onDismissRequest = { if (!eliminando) usuarioAEliminar = null },
+            shape = formas.large,
+            containerColor = cs.surfaceContainer,
             icon = {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
+                    tint = cs.error
                 )
             },
-            title = { Text(text = "Eliminar Usuario", fontWeight = FontWeight.Bold) },
+            title = { Text(text = "Eliminar Usuario", style = tp.titleLarge) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "¿Está seguro de que desea eliminar a '${u.name ?: ""}'? Esta acción no se puede deshacer.",
-                        fontSize = 14.sp
+                        style = tp.bodyMedium
                     )
                     errorEliminar?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(it, style = tp.bodySmall, color = cs.error, fontWeight = FontWeight.Bold)
                     }
                 }
             },
@@ -437,26 +444,25 @@ fun UsuarioPantalla() {
                 Button(
                     onClick = { eliminar(u) },
                     enabled = !eliminando,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.error, contentColor = cs.onError),
+                    shape = formas.medium
                 ) {
                     if (eliminando) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = Color.White,
+                            color = cs.onError,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Eliminar", fontWeight = FontWeight.Bold)
+                        Text("Eliminar", style = tp.labelLarge)
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { usuarioAEliminar = null }, enabled = !eliminando) {
-                    Text("Cancelar")
+                    Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
                 }
-            },
-            shape = RoundedCornerShape(20.dp)
+            }
         )
     }
 }
@@ -468,20 +474,22 @@ fun UsuarioCardMejorada(
     onToggleEstado: () -> Unit,
     onEliminar: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
     val activo = usuario.status ?: true
     val rol = usuario.role ?: "minero"
     val esAdmin = rol.equals("admin", ignoreCase = true)
-    val rolColor = if (esAdmin) MaterialTheme.colorScheme.primary else ColorRolMinero
-    val estadoColor = if (activo) ColorActivo else ColorInhabilitado
-    val colorAvatar = if (activo) MaterialTheme.colorScheme.primary else Color.Gray
+    val rolColor = if (esAdmin) cs.primary else AdvertenciaNaranja
+    val estadoColor = if (activo) ExitoVerde else cs.error
+    val colorAvatar = if (activo) cs.primary else cs.onSurfaceVariant
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = if (activo) MaterialTheme.colorScheme.surfaceVariant
-            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = if (activo) cs.surfaceContainer else cs.surfaceContainer.copy(alpha = 0.5f)
         ),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+        shape = formas.large,
+        border = BorderStroke(1.dp, cs.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -491,15 +499,15 @@ fun UsuarioCardMejorada(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = formas.medium,
                     color = colorAvatar.copy(alpha = 0.15f),
                     modifier = Modifier.size(46.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = inicialesUsuario(usuario.name),
+                            style = tp.titleMedium,
                             fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
                             color = colorAvatar
                         )
                     }
@@ -508,28 +516,25 @@ fun UsuarioCardMejorada(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = usuario.name ?: "Sin nombre",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = tp.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (activo) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = if (activo) cs.onSurface else cs.onSurface.copy(alpha = 0.5f)
                     )
                     Text(
                         text = usuario.email ?: "",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = tp.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = cs.onSurfaceVariant
                     )
                 }
 
-                Surface(shape = RoundedCornerShape(8.dp), color = rolColor.copy(alpha = 0.2f)) {
+                Surface(shape = formas.small, color = rolColor.copy(alpha = 0.2f)) {
                     Text(
                         text = rol.uppercase(),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = tp.labelSmall,
                         color = rolColor
                     )
                 }
@@ -544,14 +549,13 @@ fun UsuarioCardMejorada(
                 Box(modifier = Modifier.size(8.dp).background(estadoColor, CircleShape))
                 Text(
                     text = if (activo) "Cuenta activa" else "Cuenta inhabilitada",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = tp.labelMedium,
                     color = estadoColor
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            HorizontalDivider(color = cs.outlineVariant)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -559,11 +563,11 @@ fun UsuarioCardMejorada(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val colorToggle = if (activo) ColorInhabilitado else MaterialTheme.colorScheme.primary
+                val colorToggle = if (activo) cs.error else cs.primary
                 OutlinedButton(
                     onClick = onToggleEstado,
                     enabled = !procesando,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = formas.small,
                     border = BorderStroke(1.dp, colorToggle.copy(alpha = 0.6f)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = colorToggle),
@@ -578,11 +582,7 @@ fun UsuarioCardMejorada(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (activo) "Inhabilitar" else "Habilitar",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = if (activo) "Inhabilitar" else "Habilitar", style = tp.labelMedium)
                     }
                 }
 
@@ -590,7 +590,7 @@ fun UsuarioCardMejorada(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Eliminar usuario",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        tint = cs.error.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -604,6 +604,9 @@ private fun DialogoNuevoUsuarioMejorado(
     onCreado: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val tp = MaterialTheme.typography
+    val formas = MaterialTheme.shapes
 
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
@@ -647,7 +650,8 @@ private fun DialogoNuevoUsuarioMejorado(
 
     AlertDialog(
         onDismissRequest = { if (!guardando) onDismiss() },
-        shape = RoundedCornerShape(24.dp),
+        shape = formas.large,
+        containerColor = cs.surfaceContainer,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -656,17 +660,17 @@ private fun DialogoNuevoUsuarioMejorado(
                 Icon(
                     imageVector = Icons.Default.PersonAdd,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = cs.primary
                 )
-                Text("Nuevo Usuario", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Nuevo Usuario", style = tp.titleLarge, color = cs.onSurface)
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "Ingrese las credenciales del nuevo operador o administrador.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = tp.bodySmall,
+                    color = cs.onSurfaceVariant
                 )
 
                 OutlinedTextField(
@@ -675,7 +679,8 @@ private fun DialogoNuevoUsuarioMejorado(
                     label = { Text("Nombre Completo") },
                     enabled = !guardando,
                     singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = formas.medium,
+                    colors = coloresCampoUsuario(),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -685,7 +690,8 @@ private fun DialogoNuevoUsuarioMejorado(
                     label = { Text("Correo Electrónico") },
                     enabled = !guardando,
                     singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = formas.medium,
+                    colors = coloresCampoUsuario(),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -695,7 +701,8 @@ private fun DialogoNuevoUsuarioMejorado(
                     label = { Text("Contraseña de Acceso") },
                     enabled = !guardando,
                     singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = formas.medium,
+                    colors = coloresCampoUsuario(),
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (claveVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -708,12 +715,7 @@ private fun DialogoNuevoUsuarioMejorado(
                     }
                 )
 
-                Text(
-                    text = "Rol de Acceso:",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text(text = "Rol de Acceso:", style = tp.labelMedium, color = cs.primary)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -725,8 +727,8 @@ private fun DialogoNuevoUsuarioMejorado(
                         Surface(
                             selected = seleccionado,
                             onClick = { if (!guardando) rol = claveRol },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (seleccionado) MaterialTheme.colorScheme.primary else GrisCampos,
+                            shape = formas.medium,
+                            color = if (seleccionado) cs.primary else cs.surfaceContainerHigh,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
@@ -734,10 +736,8 @@ private fun DialogoNuevoUsuarioMejorado(
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = etiqueta,
-                                    color = if (seleccionado) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    style = tp.labelMedium,
+                                    color = if (seleccionado) cs.onPrimary else cs.onSurface
                                 )
                             }
                         }
@@ -745,7 +745,7 @@ private fun DialogoNuevoUsuarioMejorado(
                 }
 
                 error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                    Text(it, style = tp.bodySmall, color = cs.error)
                 }
             }
         },
@@ -753,21 +753,23 @@ private fun DialogoNuevoUsuarioMejorado(
             Button(
                 onClick = { guardar() },
                 enabled = !guardando,
-                shape = RoundedCornerShape(12.dp)
+                shape = formas.medium
             ) {
                 if (guardando) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = cs.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Guardar Usuario", fontWeight = FontWeight.Bold)
+                    Text("Guardar Usuario", style = tp.labelLarge)
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !guardando) { Text("Cancelar") }
+            TextButton(onClick = onDismiss, enabled = !guardando) {
+                Text("Cancelar", style = tp.labelLarge, color = cs.onSurfaceVariant)
+            }
         }
     )
 }
